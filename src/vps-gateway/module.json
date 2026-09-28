@@ -1,0 +1,19 @@
+{
+  "display_name": "NGINX and Certbot setup",
+  "category": "Server services",
+  "description": "distribution NGINX and Certbot bootstrap for a VPS",
+  "schema_version": 1,
+  "id": "vps-gateway",
+  "setup": "setup.sh",
+  "documentation": "README.md",
+  "commands": {
+    "vps-gateway": "scripts/vps-gateway"
+  },
+  "examples": [
+    "configuration/project-site.conf.example"
+  ],
+  "cron_templates": [],
+  "scopes": [
+    "system"
+  ]
+}

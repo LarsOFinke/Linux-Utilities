@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "linux-canary-file-tracker"
+version = "0.1.0"
+description = "Linux Canary File Tracker project metadata and mailer companion package"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+canary-mailer = "app:main"
+
+[tool.setuptools]
+py-modules = ["app"]

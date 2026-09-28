@@ -1,0 +1,19 @@
+{
+  "display_name": "Desktop hardware setup",
+  "category": "Desktop hardware",
+  "description": "AMD gaming packages and the H848 audio fix",
+  "schema_version": 1,
+  "id": "system",
+  "setup": "setup.sh",
+  "documentation": "README.md",
+  "commands": {
+    "install-amd-gaming": "scripts/install_amd_gaming.sh",
+    "install-h848-audio-fix": "scripts/install_h848_audio_fix.sh"
+  },
+  "examples": [],
+  "cron_templates": [],
+  "scopes": [
+    "user",
+    "system"
+  ]
+}

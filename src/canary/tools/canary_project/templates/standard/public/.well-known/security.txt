@@ -1,0 +1,4 @@
+Contact: security@canary.internal
+Expires: 2026-12-31T00:00:00.000Z
+Preferred-Languages: en
+Policy: https://canary.internal/security-policy

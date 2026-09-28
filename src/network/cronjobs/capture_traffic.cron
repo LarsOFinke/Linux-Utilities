@@ -1,0 +1,7 @@
+# Cron entry template for the network traffic capture module.
+# Installed inactive at /etc/cron.d/capture-traffic by system-wide setup.
+# The root format includes the user field required by /etc/cron.d files.
+#
+# SHELL=/bin/bash
+# PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# 01 03 * * * root /usr/local/bin/capture-traffic

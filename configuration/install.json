@@ -1,0 +1,22 @@
+{
+  "schema_version": 2,
+  "scopes": {
+    "user": {
+      "bin_dir": ".local/bin",
+      "registry": ".local/state/shell-scripts/registry.json"
+    },
+    "system": {
+      "bin_dir": "usr/local/bin",
+      "registry": "var/lib/shell-scripts/registry.json"
+    }
+  },
+  "modules": {
+    "backup": "src/backup/module.json",
+    "network": "src/network/module.json",
+    "system": "src/system/module.json",
+    "privacy": "src/privacy/module.json",
+    "canary": "src/canary/module.json",
+    "vps-gateway": "src/vps-gateway/module.json",
+    "ubuntu-updates": "src/ubuntu-updates/module.json"
+  }
+}

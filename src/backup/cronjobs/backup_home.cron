@@ -1,0 +1,7 @@
+# Cron entry template for the home backup module.
+# Installed inactive at /etc/cron.d/backup-home by system-wide setup.
+# The root format includes the user field required by /etc/cron.d files.
+#
+# SHELL=/bin/bash
+# PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# 01 03 * * * root /usr/local/bin/backup-home-cron sampleuser

@@ -1,0 +1,36 @@
+{
+  "display_name": "Canary file monitoring",
+  "category": "Monitoring",
+  "description": "named fanotify sensors and systemd services",
+  "schema_version": 1,
+  "id": "canary",
+  "setup": "setup.sh",
+  "documentation": "README.md",
+  "commands": {
+    "fs-tracker": "tracker/app/main.c",
+    "canary-control": "scripts/canary-control"
+  },
+  "examples": [
+    "configuration/fs-tracker.cfg.example"
+  ],
+  "cron_templates": [],
+  "runtime_configs": {
+    "system": [
+      "etc/fs-tracker",
+      "var/lib/shell-scripts/canary"
+    ]
+  },
+  "build_commands": {
+    "fs-tracker": "scripts/build-tracker.sh"
+  },
+  "pre_remove": {
+    "command": "canary-control",
+    "args": [
+      "remove-all",
+      "--yes"
+    ]
+  },
+  "scopes": [
+    "system"
+  ]
+}

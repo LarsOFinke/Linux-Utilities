@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+usage() {
+    cat <<'EOF'
+Usage: vps-gateway configure|status
+
+configure  Install distribution NGINX, Certbot, and the Certbot NGINX plugin;
+           validate the current NGINX configuration and enable the service.
+status     Show the NGINX service state and validate its configuration.
+EOF
+}
+
+[[ $# -eq 1 ]] || { usage >&2; exit 2; }
+case "$1" in
+    configure)
+        install_root=$(realpath -m -- "${SHELL_SCRIPTS_INSTALL_ROOT:-/}")
+        if [[ $install_root == / && $EUID -ne 0 ]]; then
+            echo 'Run vps-gateway configure with sudo.' >&2
+            exit 1
+        fi
+        for command in apt-get nginx systemctl; do
+            command -v "$command" >/dev/null || {
+                printf 'Required command is missing: %s\n' "$command" >&2
+                exit 1
+            }
+        done
+        apt-get update
+        apt-get install -y nginx certbot python3-certbot-nginx
+        nginx -t
+        systemctl enable nginx
+        if systemctl is-active --quiet nginx; then
+            systemctl reload nginx
+        else
+            systemctl start nginx
+        fi
+        printf 'NGINX and Certbot are ready in their distribution locations.\n'
+        ;;
+    status)
+        command -v nginx >/dev/null || { echo 'NGINX is not installed.' >&2; exit 1; }
+        command -v systemctl >/dev/null || { echo 'systemctl is unavailable.' >&2; exit 1; }
+        nginx -t
+        systemctl status nginx
+        ;;
+    -h|--help|help) usage ;;
+    *) usage >&2; exit 2 ;;
+esac

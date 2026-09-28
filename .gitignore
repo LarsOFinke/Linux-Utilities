@@ -1,0 +1,23 @@
+# Disposable agent-generated data
+.agents/cache/*
+!.agents/cache/.gitkeep
+!.agents/cache/README.md
+
+# Local configuration and generated data
+*.env
+!*.env.example
+!src/canary/tools/canary_project/templates/standard/api/.env
+!src/canary/tools/canary_project/templates/standard/config/app.env
+*.cfg
+!*.cfg.example
+*.pcap
+*.tar.bz2
+*.pid
+*.log
+*.egg-info/
+.venv/
+build/
+dist/
+*.jsonl
+__pycache__/
+*.pyc

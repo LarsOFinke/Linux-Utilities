@@ -1,0 +1,4 @@
+# Simple KEY=VALUE configuration.
+# Default lure file looks like a private SSH key to attract attention from attackers.
+TRACK_PATH=/srv/honey/.ssh/id_ed25519
+TRACK_LOG=/tmp/fs-events.jsonl

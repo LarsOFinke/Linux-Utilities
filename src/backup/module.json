@@ -1,0 +1,32 @@
+{
+  "display_name": "Home backup and remote copy",
+  "category": "Data and privacy",
+  "description": "verified home snapshots and remote backup copies",
+  "schema_version": 1,
+  "id": "backup",
+  "setup": "setup.sh",
+  "documentation": "README.md",
+  "commands": {
+    "backup-home": "scripts/backup_home.sh",
+    "backup-home-cron": "scripts/backup_home_cron.sh",
+    "fetch-remote-backup": "scripts/fetch_remote_backup.sh",
+    "backup_home_common.sh": "scripts/backup_home_common.sh"
+  },
+  "non_executable_commands": [
+    "backup_home_common.sh"
+  ],
+  "examples": [
+    "configuration/backup.env.example"
+  ],
+  "cron_templates": [
+    "cronjobs/backup_home.cron"
+  ],
+  "system_cron": {
+    "source": "cronjobs/backup_home.cron",
+    "name": "backup-home"
+  },
+  "scopes": [
+    "user",
+    "system"
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "display_name": "History and log cleanup",
+  "category": "Data and privacy",
+  "description": "retention for user history and system logs",
+  "schema_version": 1,
+  "id": "privacy",
+  "setup": "setup.sh",
+  "documentation": "README.md",
+  "commands": {
+    "privacy-cleanup": "scripts/privacy_cleanup.sh"
+  },
+  "examples": [
+    "configuration/user.cfg.example",
+    "configuration/system.cfg.example"
+  ],
+  "cron_templates": [
+    "cronjobs/privacy-cleanup.cron"
+  ],
+  "runtime_configs": {
+    "user": [
+      ".config/privacy-cleanup/user.cfg"
+    ],
+    "system": [
+      "etc/privacy-cleanup/system.cfg"
+    ]
+  },
+  "schedules": {
+    "user": [
+      "user crontab: # privacy-cleanup user"
+    ],
+    "system": [
+      "etc/cron.d/privacy-cleanup"
+    ]
+  },
+  "pre_remove": {
+    "command": "privacy-cleanup",
+    "args": [
+      "uninstall-schedule"
+    ],
+    "system_arg": "--system",
+    "purge_arg": "--purge-config",
+    "root_env": "PRIVACY_ROOT"
+  },
+  "post_install": {
+    "command": "privacy-cleanup",
+    "args": [
+      "configure"
+    ],
+    "system_arg": "--system",
+    "root_env": "PRIVACY_ROOT",
+    "prompt": "Configure history and log retention now?"
+  },
+  "scopes": [
+    "user",
+    "system"
+  ]
+}
