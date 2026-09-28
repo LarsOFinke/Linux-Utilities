@@ -8,8 +8,20 @@
   "documentation": "README.md",
   "commands": {
     "fs-tracker": "tracker/app/main.c",
-    "canary-control": "scripts/canary-control"
+    "canary-control": "scripts/canary-control",
+    "canary-configure": "scripts/canary_workflow.sh",
+    "canary-status": "scripts/canary_workflow.sh",
+    "canary-start": "scripts/canary_workflow.sh",
+    "canary-stop": "scripts/canary_workflow.sh",
+    "canary-remove": "scripts/canary_workflow.sh",
+    "canary-remove-all": "scripts/canary_workflow.sh",
+    "canary_state.py": "scripts/canary_state.py",
+    "canary_lifecycle.py": "scripts/canary_lifecycle.py"
   },
+  "non_executable_commands": [
+    "canary_state.py",
+    "canary_lifecycle.py"
+  ],
   "examples": [
     "configuration/fs-tracker.cfg.example"
   ],
@@ -24,11 +36,8 @@
     "fs-tracker": "scripts/build-tracker.sh"
   },
   "pre_remove": {
-    "command": "canary-control",
-    "args": [
-      "remove-all",
-      "--yes"
-    ]
+    "command": "canary-remove-all",
+    "args": ["--yes"]
   },
   "scopes": [
     "system"

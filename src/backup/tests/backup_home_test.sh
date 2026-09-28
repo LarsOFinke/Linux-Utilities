@@ -44,6 +44,14 @@ snapshots=("$destination"/backup_home_sampleuser_*.tar.bz2)
 temporary=("$destination"/.backup.*.tar.bz2)
 [[ ${#snapshots[@]} -eq 2 && ${#temporary[@]} -eq 0 ]]
 
+# Pruning is a separate, explicit workflow; the latest two snapshots survive.
+old_archive="$destination/backup_home_sampleuser_2020-01-01T000000.000000000_1.tar.bz2"
+older_archive="$destination/backup_home_sampleuser_2020-02-01T000000.000000000_2.tar.bz2"
+touch "$old_archive" "$older_archive"
+"$project_root/src/backup/scripts/backup_home_prune.sh" sampleuser --yes >/dev/null
+[[ ! -e "$old_archive" && ! -e "$older_archive" ]]
+[[ -f "$first_archive" && -f "$second_archive" ]]
+
 if "$script" '' >/dev/null 2>&1; then
     echo 'Expected empty user name to fail' >&2
     exit 1

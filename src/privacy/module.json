@@ -7,8 +7,21 @@
   "setup": "setup.sh",
   "documentation": "README.md",
   "commands": {
-    "privacy-cleanup": "scripts/privacy_cleanup.sh"
+    "privacy-cleanup": "scripts/privacy_cleanup.sh",
+    "privacy-configure": "scripts/privacy_workflow.sh",
+    "privacy-status": "scripts/privacy_workflow.sh",
+    "privacy-run": "scripts/privacy_workflow.sh",
+    "privacy-scheduled": "scripts/privacy_workflow.sh",
+    "privacy-uninstall-schedule": "scripts/privacy_workflow.sh",
+    "privacy_policy.sh": "scripts/privacy_policy.sh",
+    "privacy_schedule.sh": "scripts/privacy_schedule.sh",
+    "privacy_clean.sh": "scripts/privacy_clean.sh"
   },
+  "non_executable_commands": [
+    "privacy_policy.sh",
+    "privacy_schedule.sh",
+    "privacy_clean.sh"
+  ],
   "examples": [
     "configuration/user.cfg.example",
     "configuration/system.cfg.example"
@@ -33,19 +46,15 @@
     ]
   },
   "pre_remove": {
-    "command": "privacy-cleanup",
-    "args": [
-      "uninstall-schedule"
-    ],
+    "command": "privacy-uninstall-schedule",
+    "args": [],
     "system_arg": "--system",
     "purge_arg": "--purge-config",
     "root_env": "PRIVACY_ROOT"
   },
   "post_install": {
-    "command": "privacy-cleanup",
-    "args": [
-      "configure"
-    ],
+    "command": "privacy-configure",
+    "args": [],
     "system_arg": "--system",
     "root_env": "PRIVACY_ROOT",
     "prompt": "Configure history and log retention now?"

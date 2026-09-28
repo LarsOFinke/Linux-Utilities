@@ -31,21 +31,21 @@ Installed commands:
 
 | Category | Module (stable ID) | Commands |
 | --- | --- | --- |
-| Data and privacy | Home backup and remote copy (`backup`) | `backup-home`, `backup-home-cron`, `fetch-remote-backup` |
-| Data and privacy | History and log cleanup (`privacy`) | `privacy-cleanup` |
+| Data and privacy | Home backup and remote copy (`backup`) | `backup-home`, `backup-home-cron`, `backup-home-prune`, `fetch-remote-backup` |
+| Data and privacy | History and log cleanup (`privacy`) | `privacy-configure`, `privacy-status`, `privacy-run`, `privacy-scheduled`, `privacy-uninstall-schedule` |
 | Monitoring | Packet capture (`network`) | `capture-traffic` |
-| Monitoring | Canary file monitoring (`canary`) | `fs-tracker`, `canary-control` (system install) |
-| Desktop hardware | Desktop hardware setup (`system`) | `install-amd-gaming`, `install-h848-audio-fix` |
-| Server services | Ubuntu automatic updates (`ubuntu-updates`) | `ubuntu-updates` (system install) |
-| Server services | NGINX and Certbot setup (`vps-gateway`) | `vps-gateway`, `vps-gateway-site` (system install) |
+| Monitoring | Canary file monitoring (`canary`) | `fs-tracker`, `canary-configure`, `canary-status`, `canary-start`, `canary-stop`, `canary-remove`, `canary-remove-all` (system install) |
+| System utilities | System utilities (`system`) | `update-system`, `install-amd-gaming`, `install-h848-audio-fix`, `uninstall-h848-audio-fix` |
+| Server services | Ubuntu automatic updates (`ubuntu-updates`) | `ubuntu-updates-configure`, `ubuntu-updates-status`, `ubuntu-updates-logs`, `ubuntu-updates-dry-run`, `ubuntu-updates-run`, `ubuntu-updates-restore` (system install) |
+| Server services | NGINX and Certbot setup (`vps-gateway`) | `vps-gateway-configure`, `vps-gateway-status`, `vps-gateway-init`, `vps-gateway-add`, `vps-gateway-site-list`, `vps-gateway-site-render` (system install) |
 
-Some commands still require privileges for their own job. `privacy-cleanup` defaults to the current user's files without sudo; `privacy-cleanup --system` is optional and requires sudo. Read the module README before using a host-changing command.
+The previous multi-command entry points (`privacy-cleanup`, `ubuntu-updates`, `canary-control`, `vps-gateway`, and `vps-gateway-site`) remain installed for existing scripts. Each named workflow above can now be called directly. Some commands still require privileges for their own job. Privacy defaults to the current user's files without sudo; `--system` is optional and requires sudo. Read the module README before using a host-changing command.
 
 `ubuntu-updates` is system-scope because its explicit `configure` command manages host APT policy and timers. Selecting it in the root setup UI installs the command system-wide but does not apply a policy. See the [module guide](src/ubuntu-updates/README.md) for commands, rollback, and the legacy-policy check.
 
 `canary` is system-scope because its named services use systemd and fanotify privileges. Setup compiles and installs the sensor but does not create or start a service. See the [canary guide](src/canary/README.md) for configuration and safe removal.
 
-`vps-gateway` is system-scope. Setup installs its host command and the `vps-gateway-site` generator. Interactive setup offers a first-run wizard to choose a blueprint, fill in its host and port or document root, and activate the core, catch-all, and first site. `sudo vps-gateway configure` remains package-only. See the [VPS gateway guide](src/vps-gateway/README.md).
+`vps-gateway` is system-scope. Interactive setup offers a first-run wizard to choose a blueprint, fill in its host and port or document root, and activate the core, catch-all, and first site. Run `sudo vps-gateway-add` to add later hostnames through the same kind of prompts. `sudo vps-gateway-configure` remains package-only. See the [VPS gateway guide](src/vps-gateway/README.md).
 
 ## Layout
 
@@ -74,6 +74,7 @@ shellcheck setup.sh uninstall.sh src/*/setup.sh src/*/uninstall.sh src/installat
 bash src/backup/tests/backup_home_test.sh
 bash src/network/tests/capture_traffic_test.sh
 bash src/system/tests/h848_uninstall_test.sh
+bash src/system/tests/update_system_test.sh
 bash src/privacy/tests/privacy_cleanup_test.sh
 bash src/ubuntu-updates/tests/ubuntu_updates_test.sh
 bash src/canary/tests/integration_test.sh

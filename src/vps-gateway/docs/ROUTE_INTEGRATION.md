@@ -20,7 +20,7 @@ services:
       - "127.0.0.1:18083:8080"
 ```
 
-Choose an unused host port per project. Keep databases and administrative services on private networks. For a host process, bind it to `127.0.0.1` directly. A local `curl -I http://127.0.0.1:18083/` should reach the app before adding NGINX.
+Choose an unused host port per project. `sudo vps-gateway-add` suggests the next available port, shows the endpoint to configure, and waits for you to acknowledge it before activating the site. Keep databases and administrative services on private networks. For a host process, bind it to `127.0.0.1` directly. A local `curl -I http://127.0.0.1:18083/` should reach the app before adding NGINX.
 
 1. In the project repository, render a site. The command refuses to overwrite an existing file:
 

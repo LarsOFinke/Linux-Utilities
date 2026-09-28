@@ -21,8 +21,9 @@ def main() -> int:
         raise SystemExit("site generator template marker is missing or repeated")
     if source.count(core_marker) != 1:
         raise SystemExit("core template marker is missing or repeated")
+    model = (module / "scripts/vps_site_model.py").read_text(encoding="utf-8")
     definition = next(
-        (node.value for node in ast.parse(source).body
+        (node.value for node in ast.parse(model).body
          if isinstance(node, ast.Assign)
          and any(isinstance(target, ast.Name) and target.id == "BLUEPRINTS" for target in node.targets)),
         None,

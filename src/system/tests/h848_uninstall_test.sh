@@ -38,6 +38,7 @@ lua_config="$HOME/.config/wireplumber/main.lua.d/51-h848-soft-mixer.lua"
 mkdir -p "$legacy_dir" "$(dirname "$lua_config")"
 printf 'old generated file\n' >"$legacy_dir/51-h848-soft-mixer.lua.bak"
 printf 'installed\n' >"$lua_config"
-"$project_root/src/system/scripts/install_h848_audio_fix.sh" --uninstall >/dev/null
+"$project_root/src/system/setup.sh" --no-configure >/dev/null
+"$HOME/.local/bin/uninstall-h848-audio-fix" >/dev/null
 [[ ! -e "$lua_config" ]]
 printf 'H848 uninstall test passed\n'

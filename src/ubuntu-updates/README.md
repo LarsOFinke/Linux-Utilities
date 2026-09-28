@@ -6,16 +6,18 @@ Install the command system-wide from the repository root with `./setup.sh --modu
 
 ```bash
 ubuntu-updates                             # interactive menu
-ubuntu-updates status                      # no sudo needed
-ubuntu-updates logs                        # readable logs only
-ubuntu-updates configure                   # interactive policy choices
-ubuntu-updates configure --updates security --reboot off --yes
-ubuntu-updates configure --updates all --reboot 04:00 --yes
-ubuntu-updates dry-run
-ubuntu-updates run                          # asks before installing updates
-ubuntu-updates run --yes                    # explicit noninteractive run
-ubuntu-updates restore                     # asks before restoring policy
+ubuntu-updates-status                       # no sudo needed
+ubuntu-updates-logs                         # readable logs only
+ubuntu-updates-configure                    # interactive policy choices
+ubuntu-updates-configure --updates security --reboot off --yes
+ubuntu-updates-configure --updates all --reboot 04:00 --yes
+ubuntu-updates-dry-run
+ubuntu-updates-run                           # asks before installing updates
+ubuntu-updates-run --yes                     # explicit noninteractive run
+ubuntu-updates-restore                       # asks before restoring policy
 ```
+
+`ubuntu-updates` keeps its original subcommands for existing scripts.
 
 `configure` installs `unattended-upgrades` if absent, writes `/etc/apt/apt.conf.d/99-shell-scripts-unattended-upgrades`, and enables Ubuntu's existing `apt-daily.timer` and `apt-daily-upgrade.timer`. Security mode permits official Ubuntu and ESM security origins; `all` also permits official `-updates`. PPAs, proposed, and backports are excluded from unattended installation. Automatic reboot is off unless a time is explicitly supplied, and logged-in users block an automatic reboot. `dry-run` uses the current package lists; `run` refreshes them and installs allowed updates. Package changes made by `run` are not reversible by this module.
 

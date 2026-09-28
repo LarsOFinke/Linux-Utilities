@@ -6,13 +6,15 @@ This system-only module integrates the `Linux-Canary-File-Tracker` fanotify sens
 sudo ./setup.sh --system --module canary
 sudo install -d -m 0700 /srv/honey
 sudo install -m 0600 /dev/null /srv/honey/decoy.txt
-sudo canary-control configure decoy --path /srv/honey/decoy.txt --log /var/log/fs-tracker/decoy.jsonl
-sudo canary-control status decoy
-sudo canary-control stop decoy
-sudo canary-control start decoy
-sudo canary-control remove decoy --yes
+sudo canary-configure decoy --path /srv/honey/decoy.txt --log /var/log/fs-tracker/decoy.jsonl
+sudo canary-status decoy
+sudo canary-stop decoy
+sudo canary-start decoy
+sudo canary-remove decoy --yes
 sudo ./uninstall.sh --system --module canary
 ```
+
+`canary-control` keeps its original subcommands. `canary-remove-all` is available for intentional removal of every managed service.
 
 Setup compiles `fs-tracker` into a temporary directory before the shared installer changes installed files. It installs `fs-tracker` and `canary-control` in `/usr/local/bin` and records their hashes in the shared registry. It does not start a service or create a lure. `canary-control configure` requires an existing target file and writes `/etc/fs-tracker/<name>.conf`, `/etc/systemd/system/fs-file-monitor-<name>.service`, and private ownership state under `/var/lib/shell-scripts/canary/`. It enables and starts only that named service. Names contain letters, digits, underscores, or hyphens. `--action /absolute/executable` optionally invokes an executable after each event.
 

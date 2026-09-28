@@ -4,7 +4,7 @@ From the repository root, install with `src/backup/setup.sh` or `./setup.sh --mo
 
 ## Home snapshots
 
-`backup-home NAME` makes a verified, uniquely named archive for `/home/NAME` and offers interactive cleanup of older months while retaining the two newest snapshots. `backup-home-cron NAME` performs the same creation without prompts. Set `BACKUP_SOURCE_ROOT` for another home root and `BACKUP_ROOT` for another destination; see `configuration/backup.env.example`.
+`backup-home NAME` makes a verified, uniquely named archive for `/home/NAME`. `backup-home-cron NAME` does the same for scheduled runs. `backup-home-prune NAME` separately offers interactive cleanup of older months while retaining the two newest snapshots; use `--yes` for an intentional unattended prune. Set `BACKUP_SOURCE_ROOT` for another home root and `BACKUP_ROOT` for another destination; see `configuration/backup.env.example`.
 
 Each run writes a private temporary archive, verifies it, publishes a unique snapshot, and atomically updates `latest.tar.bz2`. A failed run leaves earlier snapshots and the latest pointer intact. Concurrent runs for one account are blocked. A destination inside the source home is rejected.
 

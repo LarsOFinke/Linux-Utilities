@@ -4,11 +4,13 @@ Install from the repository root with `src/privacy/setup.sh` or `./setup.sh --mo
 
 The daily user schedule requires `crontab` and a running cron service.
 
+`privacy-cleanup` remains available with its original subcommands. The managed schedule calls `privacy-scheduled`; removal uses `privacy-uninstall-schedule`.
+
 ```bash
-privacy-cleanup configure
-privacy-cleanup status
-privacy-cleanup run --dry-run
-privacy-cleanup run
+privacy-configure
+privacy-status
+privacy-run --dry-run
+privacy-run
 ```
 
 `configure` interactively sets the Bash-history clearing interval, the retention age for `*.log` and `*.log.*` files under a chosen directory inside your home, and the daily run time. It writes `~/.config/privacy-cleanup/user.cfg` and adds one marked entry to your existing crontab. It backs up the previous crontab before changing it. Other crontab entries are preserved. A manual `run` immediately applies every enabled user category and asks for a typed confirmation; `run --yes` is for intentional non-interactive use. The scheduled pass clears Bash history only when its interval has elapsed.
@@ -16,9 +18,9 @@ privacy-cleanup run
 For host logs, install the command system-wide with `sudo ./setup.sh --system --module privacy`, then configure and run the optional root mode:
 
 ```bash
-sudo privacy-cleanup --system configure
-sudo privacy-cleanup --system run --dry-run
-sudo privacy-cleanup --system run
+sudo privacy-configure --system
+sudo privacy-run --system --dry-run
+sudo privacy-run --system
 ```
 
 System mode writes `/etc/privacy-cleanup/system.cfg` and `/etc/cron.d/privacy-cleanup`. It asks for journal, rotated cron, login (`wtmp`/`btmp`), and other rotated system-log retention. It uses `journalctl --rotate --vacuum-time=<days>d` and deletes only matching rotated files older than the selected age. Active log files remain under the distribution's logrotate policy. Cron messages inside the journal follow journal retention; cron messages inside `syslog` follow system-log retention. `last` and `lastb` use `wtmp` and `btmp`; the separate `lastlog` database is not changed.

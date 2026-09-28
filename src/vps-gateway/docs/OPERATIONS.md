@@ -4,11 +4,15 @@
 
 ## First-run wizard
 
+For a proxy blueprint, the wizard suggests a free loopback port and waits for you to acknowledge the assigned port after configuring the application. An already running app's port can be entered explicitly.
+
 Run `sudo vps-gateway-site init` on a fresh Debian/Ubuntu NGINX layout. Select the blueprint and enter a DNS hostname plus a loopback host port or absolute document root. The wizard previews the target paths and asks before changing the host. It installs the packages, adds `/etc/nginx/conf.d/vps-gateway.conf` and the proxy header snippet, disables only the standard packaged `sites-enabled/default` symlink, and enables the first site and catch-all. It runs `nginx -t` before reload. Existing custom sites or `conf.d` files cause it to stop; use the manual integration path below for an established host. A failed config test or reload removes the staged files and restores the default symlink. Package installation remains in place.
 
 Unknown HTTP hosts receive NGINX's closed-connection status 444. On NGINX 1.19.4+, unknown TLS SNI is rejected during the handshake. The wizard's `nginx -t` rejects the catch-all on older versions. The new site stays HTTP-only unless you select the Certbot step and DNS already points to the VPS. Keep the installed site file, including any Certbot edits, in the application's repository. Uninstalling the module removes commands and preserves active host configuration.
 
 ## Existing host or manual setup
+
+After the first-run wizard, run `sudo vps-gateway-add` to add another site interactively. For proxy sites it suggests the next unused loopback port after existing gateway ports and skips locally bound ports. You can enter a different port if an app is already running on it. Configure the project to publish on the displayed `127.0.0.1:PORT`, then type that port to acknowledge it before activation. The wizard checks for an existing hostname or gateway port, previews the paths, and creates and enables the site after confirmation. It runs `nginx -t` before reload and removes its new files if either step fails. It requires the gateway core and catch-all installed by the first-run wizard. TLS is optional and requires DNS to point to this VPS.
 
 From this checkout on the VPS, after `sudo vps-gateway configure`, review existing NGINX includes and install the additive HTTP core and shared headers:
 

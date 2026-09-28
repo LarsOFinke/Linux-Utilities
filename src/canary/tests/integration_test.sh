@@ -12,12 +12,11 @@ printf 'decoy\n' > "$target"
 printf '{"old":true}\n' > "$log"
 
 "$repository/setup.sh" --system --module canary
-control="$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/canary-control"
 "$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/fs-tracker" --help >/dev/null
-"$control" configure demo --path "$target" --log "$log"
-"$control" status demo >/dev/null
-"$control" stop demo
-"$control" start demo
+"$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/canary-configure" demo --path "$target" --log "$log"
+"$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/canary-status" demo >/dev/null
+"$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/canary-stop" demo
+"$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/canary-start" demo
 config="$SHELL_SCRIPTS_INSTALL_ROOT/etc/fs-tracker/demo.conf"
 unit="$SHELL_SCRIPTS_INSTALL_ROOT/etc/systemd/system/fs-file-monitor-demo.service"
 [[ -f "$config" && -f "$unit" ]]

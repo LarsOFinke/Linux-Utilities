@@ -7,8 +7,22 @@
   "setup": "setup.sh",
   "documentation": "README.md",
   "commands": {
-    "ubuntu-updates": "scripts/ubuntu_updates.sh"
+    "ubuntu-updates": "scripts/ubuntu_updates.sh",
+    "ubuntu-updates-configure": "scripts/ubuntu_updates_workflow.sh",
+    "ubuntu-updates-status": "scripts/ubuntu_updates_workflow.sh",
+    "ubuntu-updates-logs": "scripts/ubuntu_updates_workflow.sh",
+    "ubuntu-updates-dry-run": "scripts/ubuntu_updates_workflow.sh",
+    "ubuntu-updates-run": "scripts/ubuntu_updates_workflow.sh",
+    "ubuntu-updates-restore": "scripts/ubuntu_updates_workflow.sh",
+    "ubuntu_updates_state.sh": "scripts/ubuntu_updates_state.sh",
+    "ubuntu_updates_policy.sh": "scripts/ubuntu_updates_policy.sh",
+    "ubuntu_updates_actions.sh": "scripts/ubuntu_updates_actions.sh"
   },
+  "non_executable_commands": [
+    "ubuntu_updates_state.sh",
+    "ubuntu_updates_policy.sh",
+    "ubuntu_updates_actions.sh"
+  ],
   "examples": [],
   "cron_templates": [],
   "runtime_configs": {
@@ -18,11 +32,8 @@
     ]
   },
   "pre_remove": {
-    "command": "ubuntu-updates",
-    "args": [
-      "restore",
-      "--yes"
-    ],
+    "command": "ubuntu-updates-restore",
+    "args": ["--yes"],
     "root_env": "UU_ROOT"
   },
   "scopes": [

@@ -1,5 +1,7 @@
 # Installation module
 
+`catalog.py` validates module manifests and selections. `manage.py` owns registry transactions and installation. Each module manifest includes its direct workflow commands and any non-executable support files they need.
+
 `setup.sh` at the repository root calls `orchestrate.py`, an interactive selector that sends the selection to the registry backend in `manage.py` as one batch. Each `src/<module>/setup.sh` can also be used directly through `setup_module.sh`. Root `uninstall.sh` calls the registry backend directly. `--module NAME` can be repeated; `--all` selects all available modules. `--list` shows available or installed modules.
 
 The root [installation catalog](../../configuration/install.json) lists module manifests and shared destinations. Each module's `module.json` owns its commands, display name, category, build step, examples, and removal hook. The [catalog guide](../../configuration/README.md) documents the fields. Module IDs remain stable for CLI and registry compatibility.
@@ -12,7 +14,7 @@ System installation also places inactive backup and network cron templates in `/
 
 The `ubuntu-updates` module is system-only. Root setup passes `--system` for it; installing its command does not apply an APT policy. Its system uninstall invokes the installed command's verified `restore --yes` before removing it. This removes only an unchanged policy owned by the module and restores recorded timer enablement and activity. It preserves packages, updates, and locally edited or unmanaged policy files.
 
-The `canary` module is also system-only. Its C binary is compiled before the install transaction. Installing it does not configure or start a service. Its system uninstall invokes the verified installed `canary-control remove-all --yes`, which removes owned systemd units and config files after hash checks and leaves watched targets and JSONL logs intact.
+The `canary` module is also system-only. Its C binary is compiled before the install transaction. Installing it does not configure or start a service. Its system uninstall invokes the verified installed `canary-remove-all --yes`, which removes owned systemd units and config files after hash checks and leaves watched targets and JSONL logs intact.
 
 The `vps-gateway` module is system-only. Installation registers its host command and self-contained site generator without changing host packages or services. Interactive setup offers an optional first-run site wizard. Its explicit `configure` installs distribution NGINX and Certbot packages and enables NGINX. Uninstall removes only the commands; distribution packages, service state, NGINX and Certbot data, and application site files remain for their owners.
 

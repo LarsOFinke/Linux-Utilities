@@ -4,13 +4,14 @@ This system-only module installs distribution NGINX and Certbot packages on Debi
 
 ```bash
 sudo ./setup.sh --system --module vps-gateway
-sudo vps-gateway-site init      # run later if you skipped the setup prompt
-sudo vps-gateway status
-vps-gateway-site list
+sudo vps-gateway-init           # run later if you skipped the setup prompt
+sudo vps-gateway-add            # interactively add another site
+sudo vps-gateway-status
+vps-gateway-site-list
 sudo ./uninstall.sh --system --module vps-gateway
 ```
 
-For package-only setup, use `sudo vps-gateway configure`.
+For package-only setup, use `sudo vps-gateway-configure`. After initialization, `sudo vps-gateway-add` asks for a blueprint, hostname, and port or document root, previews the changes, tests NGINX, and reloads it. For proxy sites it suggests the next port after configured gateway ports, skipping ports that are already bound locally. Press Enter to accept it, or enter the port of an already running app. The wizard refuses a port referenced by another gateway site, shows the selected `127.0.0.1:PORT`, and waits until you type the port back to acknowledge that the project is configured. It does not start or reconfigure the project itself. It refuses an existing hostname and removes staged files if validation or reload fails. TLS issuance is optional and requires working DNS. `vps-gateway-site-render` remains available for manual site generation. The original `vps-gateway` and `vps-gateway-site` subcommands remain available.
 
 Setup registers `vps-gateway` and `vps-gateway-site` in `/usr/local/bin` through the shared installation registry. An interactive root setup offers the first-run wizard; noninteractive setup only installs commands. `vps-gateway-site init` can be run later. It prompts for blueprint, hostname, and loopback port or document root, previews the paths it will change, installs packages, enables the shared HTTP core and catch-all, and tests NGINX before reload. It only runs on a fresh distribution layout without other enabled sites or `conf.d` files. Certbot issuance is optional and requires DNS to point to the VPS. If config validation or reload fails, the wizard removes its staged files and restores the packaged default-site symlink.
 

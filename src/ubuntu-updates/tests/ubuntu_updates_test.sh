@@ -91,7 +91,7 @@ policy="$UU_ROOT/etc/apt/apt.conf.d/99-shell-scripts-unattended-upgrades"
 state="$UU_ROOT/var/lib/shell-scripts/ubuntu-updates/state.cfg"
 [[ -x "$command" && ! -e "$policy" ]]
 cd /tmp
-"$command" status >/dev/null
+"$UU_ROOT/usr/local/bin/ubuntu-updates-status" >/dev/null
 
 MOCK_FAIL_ENABLE=1 "$command" configure --updates security --reboot off --yes >/dev/null 2>&1 && {
     echo 'Expected failed timer activation' >&2
@@ -101,7 +101,7 @@ MOCK_FAIL_ENABLE=1 "$command" configure --updates security --reboot off --yes >/
 [[ $(cat "$MOCK_TIMER_DIR/apt-daily.timer") == disabled ]]
 [[ $(cat "$MOCK_TIMER_DIR/apt-daily.timer.active") == inactive ]]
 
-"$command" configure --updates security --reboot off --yes
+"$UU_ROOT/usr/local/bin/ubuntu-updates-configure" --updates security --reboot off --yes
 [[ -f "$policy" && -f "$state" ]]
 [[ $(stat -c %a "$state") == 600 ]]
 [[ $(cat "$MOCK_TIMER_DIR/apt-daily.timer") == enabled ]]
@@ -117,7 +117,7 @@ MOCK_FAIL_ENABLE=1 "$command" configure --updates all --reboot off --yes >/dev/n
     exit 1
 }
 cmp -- "$test_dir/first-policy" "$policy"
-status_output=$("$command" status)
+status_output=$("$UU_ROOT/usr/local/bin/ubuntu-updates-status")
 [[ "$status_output" == *'active and verified'* ]]
 
 "$command" configure --updates all --reboot 03:30 --yes
