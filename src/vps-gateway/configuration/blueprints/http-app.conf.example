@@ -1,4 +1,4 @@
-# Compatibility example. New projects can use configuration/blueprints/http-app.conf.example.
+# Generic HTTP application, including Java/Spring Boot and Python ASGI/WSGI.
 server {
     listen 80;
     listen [::]:80;

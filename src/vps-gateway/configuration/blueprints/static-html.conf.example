@@ -1,0 +1,19 @@
+# Plain HTML/assets. Files must be readable by www-data.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name static.example.org;
+    root /srv/www/static.example.org;
+    index index.html;
+
+    limit_req zone=gateway_per_ip burst=60 nodelay;
+    limit_conn gateway_conn_per_ip 50;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    location ~ /\. {
+        deny all;
+    }
+}

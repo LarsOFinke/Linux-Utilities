@@ -12,7 +12,9 @@ on project-private networks.
 Internet -> host NGINX -> 127.0.0.1:<project port> -> project web container
 ```
 
-There is no gateway runtime or central route state. Each project owns its site
-file under the standard NGINX `sites-available`/`sites-enabled` layout. Adding or
-changing a file requires `nginx -t` followed by a graceful reload, not an NGINX
-redeployment.
+There is no gateway runtime or central route state. One reviewed host-level core
+HTTP snippet supplies bounded proxy timeouts, shared limit zones, and a
+WebSocket upgrade map. An optional main NGINX template covers worker sizing.
+Each project owns its site file under the standard NGINX
+`sites-available`/`sites-enabled` layout and opts into the shared limits.
+Adding or changing a site requires `nginx -t` followed by a graceful reload.

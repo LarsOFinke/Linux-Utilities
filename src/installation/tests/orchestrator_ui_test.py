@@ -99,6 +99,45 @@ def main() -> None:
             os.close(master)
         assert (home / ".config/privacy-cleanup/user.cfg").is_file()
         assert "privacy-cleanup user" in crontab_state.read_text(encoding="utf-8")
+
+        vps_root = Path(temporary) / "vps-root"
+        nginx_dir = vps_root / "etc/nginx"
+        for name in ("sites-available", "sites-enabled", "conf.d", "snippets"):
+            (nginx_dir / name).mkdir(parents=True)
+        (nginx_dir / "nginx.conf").touch()
+        (nginx_dir / "sites-available/default").touch()
+        (nginx_dir / "sites-enabled/default").symlink_to("../sites-available/default")
+        for name, script in {
+            "apt-get": "#!/bin/sh\nexit 0\n",
+            "nginx": "#!/bin/sh\n[ \"$1\" = -t ]\n",
+            "systemctl": "#!/bin/sh\n[ \"$1\" != is-active ]\n",
+        }.items():
+            path = mock_bin / name
+            path.write_text(script, encoding="utf-8")
+            path.chmod(0o755)
+        environment["SHELL_SCRIPTS_INSTALL_ROOT"] = str(vps_root)
+        master, slave = pty.openpty()
+        try:
+            process = subprocess.Popen(
+                [str(REPOSITORY / "setup.sh"), "--module", "vps-gateway"],
+                cwd=REPOSITORY,
+                env=environment,
+                stdin=slave,
+                stdout=slave,
+                stderr=slave,
+            )
+            os.close(slave)
+            slave = -1
+            os.write(master, b"y\n1\nsite.example.org\n18081\nn\ny\n")
+            if process.wait(timeout=20) != 0:
+                raise AssertionError("Interactive VPS gateway setup failed")
+        finally:
+            if slave >= 0:
+                os.close(slave)
+            os.close(master)
+        assert (nginx_dir / "sites-enabled/site.example.org.conf").is_symlink()
+        assert (nginx_dir / "sites-enabled/vps-gateway-catch-all.conf").is_symlink()
+        assert not (nginx_dir / "sites-enabled/default").exists()
         print("Orchestrator UI tests passed")
 
 

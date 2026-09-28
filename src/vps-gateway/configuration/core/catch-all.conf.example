@@ -1,0 +1,16 @@
+# Requires NGINX 1.19.4+ for ssl_reject_handshake.
+# Enable after removing any other default_server on 80/443 (including sites-enabled/default).
+# Unknown hosts do not fall through to an application site.
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+    return 444;
+}
+
+server {
+    listen 443 ssl default_server;
+    listen [::]:443 ssl default_server;
+    server_name _;
+    ssl_reject_handshake on;
+}

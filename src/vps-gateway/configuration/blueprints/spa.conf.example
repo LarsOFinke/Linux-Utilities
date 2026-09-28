@@ -1,0 +1,24 @@
+# Client-side routed HTML application. Missing assets return 404, not index.html.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name spa.example.org;
+    root /srv/www/spa.example.org;
+    index index.html;
+
+    limit_req zone=gateway_per_ip burst=60 nodelay;
+    limit_conn gateway_conn_per_ip 50;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location ~* \.(?:js|css|png|jpg|jpeg|gif|svg|ico|woff2?)$ {
+        try_files $uri =404;
+        expires 1h;
+    }
+
+    location ~ /\. {
+        deny all;
+    }
+}

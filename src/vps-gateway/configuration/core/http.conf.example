@@ -1,0 +1,19 @@
+# Included from nginx.conf's http {} through /etc/nginx/conf.d/*.conf.
+# Shared policy for VPS gateway sites. Each site opts into the limit zones.
+server_tokens off;
+add_header X-Content-Type-Options "nosniff" always;
+limit_req_zone $binary_remote_addr zone=gateway_per_ip:10m rate=30r/s;
+limit_req_zone $server_name zone=gateway_per_site:1m rate=100r/s;
+limit_conn_zone $binary_remote_addr zone=gateway_conn_per_ip:10m;
+limit_req_status 429;
+limit_conn_status 429;
+
+map $http_upgrade $gateway_connection_upgrade {
+    default upgrade;
+    '' close;
+}
+
+proxy_connect_timeout 3s;
+proxy_send_timeout 30s;
+proxy_read_timeout 60s;
+proxy_next_upstream off;

@@ -19,7 +19,7 @@ case "$1" in
             echo 'Run vps-gateway configure with sudo.' >&2
             exit 1
         fi
-        for command in apt-get nginx systemctl; do
+        for command in apt-get systemctl; do
             command -v "$command" >/dev/null || {
                 printf 'Required command is missing: %s\n' "$command" >&2
                 exit 1
@@ -27,6 +27,7 @@ case "$1" in
         done
         apt-get update
         apt-get install -y nginx certbot python3-certbot-nginx
+        command -v nginx >/dev/null || { echo 'NGINX was not installed successfully.' >&2; exit 1; }
         nginx -t
         systemctl enable nginx
         if systemctl is-active --quiet nginx; then

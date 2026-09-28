@@ -37,7 +37,7 @@ Installed commands:
 | Monitoring | Canary file monitoring (`canary`) | `fs-tracker`, `canary-control` (system install) |
 | Desktop hardware | Desktop hardware setup (`system`) | `install-amd-gaming`, `install-h848-audio-fix` |
 | Server services | Ubuntu automatic updates (`ubuntu-updates`) | `ubuntu-updates` (system install) |
-| Server services | NGINX and Certbot setup (`vps-gateway`) | `vps-gateway` (system install) |
+| Server services | NGINX and Certbot setup (`vps-gateway`) | `vps-gateway`, `vps-gateway-site` (system install) |
 
 Some commands still require privileges for their own job. `privacy-cleanup` defaults to the current user's files without sudo; `privacy-cleanup --system` is optional and requires sudo. Read the module README before using a host-changing command.
 
@@ -45,7 +45,7 @@ Some commands still require privileges for their own job. `privacy-cleanup` defa
 
 `canary` is system-scope because its named services use systemd and fanotify privileges. Setup compiles and installs the sensor but does not create or start a service. See the [canary guide](src/canary/README.md) for configuration and safe removal.
 
-`vps-gateway` is system-scope. Setup installs its command; explicit `sudo vps-gateway configure` installs the distribution NGINX and Certbot packages and starts or reloads NGINX. Applications own their own site files. See the [VPS gateway guide](src/vps-gateway/README.md).
+`vps-gateway` is system-scope. Setup installs its host command and the `vps-gateway-site` generator. Interactive setup offers a first-run wizard to choose a blueprint, fill in its host and port or document root, and activate the core, catch-all, and first site. `sudo vps-gateway configure` remains package-only. See the [VPS gateway guide](src/vps-gateway/README.md).
 
 ## Layout
 
@@ -59,7 +59,7 @@ src/
   privacy/        scripts, configuration, cronjobs, tests
   ubuntu-updates/ scripts, tests
   canary/         C sensor, control command, tools, docs, tests
-  vps-gateway/    NGINX and Certbot host bootstrap, example site, tests
+  vps-gateway/    NGINX and Certbot host bootstrap, core and site blueprints, tests
   installation/   registry-based setup/uninstall logic and tests
 .agents/          compact agent project map, qualities, debugging, cache
 ```

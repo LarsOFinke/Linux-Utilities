@@ -1,0 +1,42 @@
+# Optional Debian/Ubuntu main config. The wizard installs the separate HTTP core
+# through conf.d; review the package's existing nginx.conf before replacing it.
+user www-data;
+worker_processes auto;
+pid /run/nginx.pid;
+include /etc/nginx/modules-enabled/*.conf;
+
+events {
+    # Each proxied request may use a client and an upstream connection.
+    # Check the systemd LimitNOFILE before increasing this further.
+    worker_connections 2048;
+}
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    sendfile on;
+    tcp_nopush on;
+    keepalive_timeout 30s;
+    keepalive_requests 1000;
+    client_header_timeout 10s;
+    client_body_timeout 20s;
+    send_timeout 30s;
+    client_max_body_size 10m;
+
+    # Query strings are intentionally omitted from the access log.
+    log_format gateway '$remote_addr - $remote_user [$time_local] '
+                       '"$request_method $uri $server_protocol" $status $body_bytes_sent '
+                       'rt=$request_time urt=$upstream_response_time '
+                       'upstream=$upstream_addr host=$host';
+    access_log /var/log/nginx/access.log gateway;
+    error_log /var/log/nginx/error.log warn;
+
+    # TLS policy applies after Certbot creates HTTPS server blocks.
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
+
+    include /etc/nginx/conf.d/*.conf;
+    include /etc/nginx/sites-enabled/*;
+}

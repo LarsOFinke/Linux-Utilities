@@ -1,8 +1,8 @@
-# Compatibility example. New projects can use configuration/blueprints/http-app.conf.example.
+# Spring Boot or another JVM HTTP service, bound to 127.0.0.1:18083.
 server {
     listen 80;
     listen [::]:80;
-    server_name app.example.org;
+    server_name java.example.org;
 
     limit_req zone=gateway_per_ip burst=60 nodelay;
     limit_req zone=gateway_per_site burst=100;
@@ -11,6 +11,6 @@ server {
     location / {
         include /etc/nginx/snippets/vps-gateway-proxy-headers.conf;
         proxy_set_header Connection "";
-        proxy_pass http://127.0.0.1:18081;
+        proxy_pass http://127.0.0.1:18083;
     }
 }

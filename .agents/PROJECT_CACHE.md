@@ -10,7 +10,7 @@ Read this first for the short map, then the relevant module README.
 | History and logs (`privacy`) | `privacy-cleanup` | `src/privacy/` | `src/privacy/tests/privacy_cleanup_test.sh` |
 | Ubuntu updates (`ubuntu-updates`) | `ubuntu-updates` | `src/ubuntu-updates/` | `src/ubuntu-updates/tests/ubuntu_updates_test.sh` |
 | Canary monitoring (`canary`) | `fs-tracker`, `canary-control` | `src/canary/` | `src/canary/tests/integration_test.sh` |
-| NGINX and Certbot (`vps-gateway`) | `vps-gateway` | `src/vps-gateway/` | `src/vps-gateway/tests/vps_gateway_test.sh` |
+| NGINX and Certbot (`vps-gateway`) | `vps-gateway`, `vps-gateway-site` | `src/vps-gateway/` | `src/vps-gateway/tests/vps_gateway_test.sh` |
 | Installation | `setup.sh`, `uninstall.sh` | `src/installation/orchestrate.py`, `manage.py` | `src/installation/tests/` |
 
 `configuration/install.json` lists module manifest paths and shared installation scopes. Each `src/<module>/module.json` owns commands, examples, build and removal hooks, and presentation labels. `setup.sh` installs same-scope selections as one transaction through the shared registry installer. Mixed user/system selections require `--system` or separate commands. Reinstall removes unchanged obsolete owned files. Commands go to `~/.local/bin` by default or `/usr/local/bin` with `--system`. System setup also installs inactive backup/network cron templates. Root `uninstall.sh` removes selected registered modules. Copied modules use their own portable registry under `shell-scripts/portable/`.
@@ -21,7 +21,7 @@ Ubuntu updates is system-scope only. Installing its command does not apply a pol
 
 Canary is system-scope only. Setup compiles the C sensor before the shared transaction and installs no active service. `canary-control configure` creates named, hashed systemd units and configs; module uninstall removes those services but preserves targets and event logs. Test with a temporary install root.
 
-VPS gateway is system-scope only. Setup installs an inert command. Explicit `vps-gateway configure` installs distribution NGINX/Certbot packages and enables NGINX without owning project sites. Uninstall removes only the command and preserves packages and configuration.
+VPS gateway is system-scope only. Setup installs an inert host command and a self-contained `vps-gateway-site` generator. The optional post-install `vps-gateway-site init` wizard chooses a blueprint, installs packages, enables an additive HTTP core, catch-all, and first site, and rolls back staged files on validation failure. `vps-gateway configure` still only installs packages. `configuration/blueprints/` contains HTTP, Java, Python, WebSocket, HTML, and SPA sites. Uninstall removes commands and preserves packages and configuration.
 
 Run the validation commands in the root README. Do not run live installers, packet captures, or log cleanup as a test.
 The copy-out test is `src/installation/tests/portable_modules_test.py`.

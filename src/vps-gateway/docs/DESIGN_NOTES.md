@@ -1,0 +1,14 @@
+# Gateway design notes
+
+These settings are starting values for a small Debian/Ubuntu VPS with multiple independent web projects. Tune them from measured traffic and application capacity.
+
+- [NGINX worker documentation](https://nginx.org/en/docs/ngx_core_module.html#worker_connections) says upstream connections count toward `worker_connections`. The optional main config example uses CPU-aware workers and a moderate connection ceiling; file-descriptor limits must be checked on the host.
+- [NGINX request limiting](https://nginx.org/en/docs/http/ngx_http_limit_req_module.html) defines shared zones and burst queues. The core declares per-IP and per-site zones. Sites opt in, so rate policies can differ by workload. Proxy sites use a delayed aggregate burst to smooth short spikes and return 429 after capacity is exceeded.
+- [NGINX connection limiting](https://nginx.org/en/docs/http/ngx_http_limit_conn_module.html) counts concurrent HTTP/2 requests separately. The blueprints use per-IP limits and give the WebSocket site more room for long-lived connections.
+- [NGINX proxy documentation](https://nginx.org/en/docs/http/ngx_http_proxy_module.html) explains buffering, forwarding header inheritance, and timeouts. The shared snippet overwrites untrusted client forwarding headers. Ordinary responses remain buffered, while WebSocket and event streams disable buffering.
+- [NGINX WebSocket guidance](https://nginx.org/en/docs/http/websocket.html) requires explicit hop-by-hop upgrade headers and recommends a map for the `Connection` header. The WebSocket blueprint uses that map and a longer read timeout; applications should send periodic ping frames.
+- [NGINX header inheritance](https://nginx.org/en/docs/http/ngx_http_headers_module.html#add_header) means a site's own `add_header` directives replace inherited ones. The core sets `X-Content-Type-Options: nosniff`; repeat it in a site that adds other response headers, and ensure JavaScript/CSS responses have correct MIME types.
+- [NGINX default-server routing](https://nginx.org/en/docs/http/request_processing.html) sends unknown hostnames to a default site. The optional catch-all prevents an unrelated application from receiving them. [NGINX TLS documentation](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_reject_handshake) supports rejecting unknown SNI without a certificate on NGINX 1.19.4+.
+- [Certbot's NGINX plugin](https://eff-certbot.readthedocs.io/en/stable/using.html#nginx) edits the installed site file to issue and install certificates. The project copy must be updated after issuance so the next deployment preserves TLS.
+
+This is a reverse proxy and basic load control, not a substitute for application-level authentication, authorization, safe defaults, or a capacity plan. Keep upstream apps on loopback and tune exposed paths, body limits, timeouts, and rate limits per project.

@@ -1,0 +1,25 @@
+# FastAPI, Django ASGI, or another Python HTTP service, bound to 127.0.0.1:18084.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name python.example.org;
+
+    limit_req zone=gateway_per_ip burst=60 nodelay;
+    limit_req zone=gateway_per_site burst=100;
+    limit_conn gateway_conn_per_ip 50;
+
+    location / {
+        include /etc/nginx/snippets/vps-gateway-proxy-headers.conf;
+        proxy_set_header Connection "";
+        proxy_pass http://127.0.0.1:18084;
+    }
+
+    # Optional server-sent events endpoint. Remove if the app has none.
+    location /events/ {
+        include /etc/nginx/snippets/vps-gateway-proxy-headers.conf;
+        proxy_set_header Connection "";
+        proxy_buffering off;
+        proxy_read_timeout 1h;
+        proxy_pass http://127.0.0.1:18084;
+    }
+}

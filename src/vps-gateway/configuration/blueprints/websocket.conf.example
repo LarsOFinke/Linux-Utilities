@@ -1,0 +1,26 @@
+# HTTP application with WebSocket upgrades on /ws/.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name socket.example.org;
+
+    limit_req zone=gateway_per_ip burst=60 nodelay;
+    limit_req zone=gateway_per_site burst=100;
+    # Long-lived sockets consume connections; tune to expected clients.
+    limit_conn gateway_conn_per_ip 100;
+
+    location / {
+        include /etc/nginx/snippets/vps-gateway-proxy-headers.conf;
+        proxy_set_header Connection "";
+        proxy_pass http://127.0.0.1:18082;
+    }
+
+    location /ws/ {
+        include /etc/nginx/snippets/vps-gateway-proxy-headers.conf;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $gateway_connection_upgrade;
+        proxy_read_timeout 1h;
+        proxy_buffering off;
+        proxy_pass http://127.0.0.1:18082;
+    }
+}

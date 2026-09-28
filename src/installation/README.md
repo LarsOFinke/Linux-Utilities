@@ -14,7 +14,7 @@ The `ubuntu-updates` module is system-only. Root setup passes `--system` for it;
 
 The `canary` module is also system-only. Its C binary is compiled before the install transaction. Installing it does not configure or start a service. Its system uninstall invokes the verified installed `canary-control remove-all --yes`, which removes owned systemd units and config files after hash checks and leaves watched targets and JSONL logs intact.
 
-The `vps-gateway` module is system-only. Installation registers its command without changing host packages or services. Its explicit `configure` installs distribution NGINX and Certbot packages and enables NGINX. Uninstall removes only the command; distribution packages, service state, NGINX and Certbot data, and application site files remain for their owners.
+The `vps-gateway` module is system-only. Installation registers its host command and self-contained site generator without changing host packages or services. Interactive setup offers an optional first-run site wizard. Its explicit `configure` installs distribution NGINX and Certbot packages and enables NGINX. Uninstall removes only the commands; distribution packages, service state, NGINX and Certbot data, and application site files remain for their owners.
 
 When a module directory is copied elsewhere, its `setup.sh` and `uninstall.sh` use the bundled `portable_module.py` and a separate state file under `shell-scripts/portable/`. The canonical helper is `src/installation/portable_module.py`; run `python3 src/installation/sync_portable_helpers.py` after editing it. The portability test checks that copies stay byte-for-byte in sync. This local fallback has per-module rollback, while the root installer provides cross-module transactions and user PATH setup.
 

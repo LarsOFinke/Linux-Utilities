@@ -66,6 +66,8 @@ def main() -> int:
                 command = [str(executable)]
                 if system and hook.get("system_arg"):
                     command.append(hook["system_arg"])
+                if system and os.geteuid() != 0 and test_root == Path("/"):
+                    command = ["sudo", "--", *command]
                 subprocess.run([*command, *hook["args"]], env=environment, check=True)
         return 0
     except (OSError, RuntimeError, subprocess.CalledProcessError) as error:
