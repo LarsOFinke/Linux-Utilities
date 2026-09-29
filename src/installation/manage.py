@@ -78,6 +78,31 @@ def read_registry(path: Path, scope: str, bin_dir: Path) -> dict:
     return data
 
 
+def registry_inventory(registry: dict) -> dict[str, dict]:
+    """Report registered ownership and check its installed files."""
+    inventory = {}
+    for module, entry in registry["modules"].items():
+        components = ([name for name in MODULES[module]["components"]
+                       if name in installed_components(module, entry)]
+                      if module in MODULES and MODULES[module]["components"] else None)
+        issues = []
+        files = [(f"command {name}", Path(record["path"]), record["sha256"])
+                 for name, record in entry["commands"].items()]
+        files.extend((f"cron {path}", Path(path), record["sha256"])
+                     for path, record in entry.get("managed_cron_files", {}).items())
+        for label, path, recorded_hash in files:
+            if path.is_symlink() or not path.is_file():
+                issues.append(f"{label} is missing or not a regular file")
+            else:
+                try:
+                    if sha256(path) != recorded_hash:
+                        issues.append(f"{label} was modified")
+                except OSError as error:
+                    issues.append(f"{label} cannot be read: {error}")
+        inventory[module] = {"components": components, "issues": issues}
+    return inventory
+
+
 def copy_command(source: Path, target: Path, executable: bool) -> None:
     descriptor, temporary = tempfile.mkstemp(prefix=".shell-scripts.", dir=target.parent)
     os.close(descriptor)
@@ -392,6 +417,7 @@ def main() -> int:
                         help="Select an independently managed component; repeatable")
     parser.add_argument("--all", action="store_true", help="Select all available modules")
     parser.add_argument("--list", action="store_true", help="List available or installed modules")
+    parser.add_argument("--json", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--force", action="store_true", help="Remove locally modified installed commands")
     parser.add_argument("--purge-config", action="store_true", help="Also delete privacy runtime configuration")
     args = parser.parse_args()
@@ -402,6 +428,9 @@ def main() -> int:
                             {module: installed_components(module, registry["modules"][module])
                              for module in available if module in MODULES and MODULES[module]["components"]})
     if args.list:
+        if args.json:
+            print(json.dumps(registry_inventory(registry) if args.action == "uninstall" else {}))
+            return 0
         print("\n".join(selection_options(available, available_components)))
         return 0
     if not available:

@@ -54,7 +54,9 @@ def main() -> None:
         root = Path(temporary)
         home = root / "home"
         home.mkdir()
-        environment = dict(os.environ, HOME=str(home), PYTHONDONTWRITEBYTECODE="1")
+        environment = dict(os.environ, HOME=str(home),
+                           SHELL_SCRIPTS_INSTALL_ROOT=str(root / "system-root"),
+                           PYTHONDONTWRITEBYTECODE="1")
         binary = home / ".local/bin"
         registry = home / ".local/state/shell-scripts/registry.json"
 

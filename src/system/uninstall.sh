@@ -16,8 +16,8 @@ if [[ -f "$module_dir/../installation/manage.py" ]]; then
         fi
     done
     if [[ "$component_selected" == true ]]; then
-        exec python3 "$module_dir/../installation/manage.py" uninstall "${args[@]}"
+        exec "$module_dir/../../uninstall.sh" "${args[@]}"
     fi
-    exec python3 "$module_dir/../installation/manage.py" uninstall --module system "${args[@]}"
+    exec "$module_dir/../../uninstall.sh" --module system "${args[@]}"
 fi
 exec python3 "$module_dir/portable_module.py" uninstall "$@"

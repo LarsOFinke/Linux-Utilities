@@ -17,6 +17,7 @@ src/privacy/setup.sh              # direct setup of one module
 src/privacy/uninstall.sh          # direct removal of one module
 ./uninstall.sh                     # interactive module selection
 ./uninstall.sh --module privacy
+./uninstall.sh --module ubuntu-updates  # finds its system registry entry
 ./uninstall.sh --component system:update
 ```
 
@@ -26,9 +27,9 @@ The root selector installs all selected modules in one transaction for one scope
 
 The `system` module offers independently managed `system:update`, `system:amd-gaming`, and `system:h848-audio` components. In the interactive menu, select `system` first, then select one or more sub-modules. Setup shows sub-modules not yet installed; uninstall shows only those recorded as installed. Use repeatable `--component MODULE:NAME` options for scripted selection. Explicit `--module system` still selects all three. Adding or removing one component leaves installed siblings registered. `--list` reflects the available setup or uninstall selections. Installing these commands does not run the utilities.
 
-The default installation copies selected commands to `~/.local/bin` and records them in `~/.local/state/shell-scripts/registry.json`. The existing `shell-scripts` state paths and markers stay in place so installed modules remain manageable after the project rename. If needed, setup adds `~/.local/bin` to `~/.profile`; open a new shell or source that file before calling commands by name. The registry records command paths and hashes, source files, configuration examples, cron templates, and runtime policy paths. Uninstall removes only registered commands, refuses locally modified files unless `--force` is supplied, and removes managed privacy schedules. It preserves privacy policy files unless `--purge-config` is supplied.
+The default installation copies selected commands to `~/.local/bin` and records them in `~/.local/state/shell-scripts/registry.json`. The existing `shell-scripts` state paths and markers stay in place so installed modules remain manageable after the project rename. If needed, setup adds `~/.local/bin` to `~/.profile`; open a new shell or source that file before calling commands by name. The registry records command paths and hashes, source files, configuration examples, cron templates, and runtime policy paths. Root uninstall reads both user and system registries, labels their scopes, and checks recorded command files against their hashes. It may ask for sudo to read the private system registry or remove a system module. Uninstall removes only registered commands, refuses locally modified files unless `--force` is supplied, and removes managed privacy schedules. It preserves privacy policy files unless `--purge-config` is supplied.
 
-For commands available to every account, use `sudo ./setup.sh --system --all`. That installs to `/usr/local/bin`, places inactive backup and network cron templates under `/etc/cron.d`, and records `/var/lib/shell-scripts/registry.json`; remove with `sudo ./uninstall.sh --system`. `--list` shows available modules for setup or installed modules for uninstall. You can repeat `--module NAME` or use `--all`.
+For commands available to every account, use `sudo ./setup.sh --system --all`. That installs to `/usr/local/bin`, places inactive backup and network cron templates under `/etc/cron.d`, and records `/var/lib/shell-scripts/registry.json`; remove with `./uninstall.sh --system`. `--list` shows available modules for setup or registered modules for uninstall. You can repeat `--module NAME` or use `--all`. When the same full module exists in both scopes, explicit removal defaults to the user copy; add `--system` for the system copy. An explicit component selection finds the scope where that component is installed.
 
 The root [installation catalog](configuration/install.json) lists module manifests and shared install destinations. Each `src/<module>/module.json` owns its display name, category, commands, examples, build step, and removal hook. See the [catalog guide](configuration/README.md). Generated registries stay outside Git.
 
@@ -91,4 +92,5 @@ python3 src/installation/tests/orchestrator_ui_test.py
 python3 src/installation/tests/transaction_test.py
 python3 src/installation/tests/portable_modules_test.py
 python3 src/installation/tests/component_test.py
+python3 src/installation/tests/registry_routing_test.py
 ```

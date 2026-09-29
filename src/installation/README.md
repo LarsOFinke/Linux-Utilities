@@ -2,11 +2,11 @@
 
 `catalog.py` validates module manifests and selections. `manage.py` owns registry transactions and installation. Each module manifest includes its direct workflow commands and any non-executable support files they need.
 
-`setup.sh` at the repository root calls `orchestrate.py`, an interactive selector that sends the selection to the registry backend in `manage.py` as one batch. Each `src/<module>/setup.sh` can also be used directly through `setup_module.sh`. Root `uninstall.sh` calls the registry backend directly. `--module NAME` can be repeated; `--all` selects all available modules. `--list` shows available or installed modules.
+`setup.sh` at the repository root calls `orchestrate.py`, an interactive selector that sends the selection to the registry backend in `manage.py` as one batch. Each `src/<module>/setup.sh` can also be used directly through `setup_module.sh`. Root `uninstall.sh` calls `uninstall_orchestrate.py`, which reads both scope registries and sends selected removals to `manage.py`. `--module NAME` can be repeated; `--all` selects all available modules. `--list` shows available or registered modules.
 
 Modules with manifest `components` also accept repeatable `--component MODULE:NAME`. Each component owns a disjoint set of commands. Selecting the full module includes every component; selecting a component adds it to any previously installed components. Removing a component keeps its siblings. Older full-module registry records remain compatible. A copied module accepts `--component NAME`.
 
-Interactive selection shows modules first, then a sub-module menu for a componentized module. Setup filters that submenu using the selected scope's registry so it offers only components still available to install. Uninstall uses the registry to offer only installed components. Explicit `--module NAME` and `--all` still select full modules.
+Interactive selection shows modules first, then a sub-module menu for a componentized module. Setup filters that submenu using the selected scope's registry so it offers only components still available to install. Uninstall reads both registries and offers only installed components, showing user or system scope. It checks recorded files on disk for missing or modified copies and shows warnings; removal still uses registry ownership and hash checks. System registry reads and removals use sudo when needed. Explicit `--module NAME` and `--all` still select full modules.
 
 The root [installation catalog](../../configuration/install.json) lists module manifests and shared destinations. Each module's `module.json` owns its commands, display name, category, build step, examples, and removal hook. The [catalog guide](../../configuration/README.md) documents the fields. Module IDs remain stable for CLI and registry compatibility.
 
@@ -26,3 +26,4 @@ When a module directory is copied elsewhere, its `setup.sh` and `uninstall.sh` u
 
 The installation tests use temporary home and system prefixes: `bash src/installation/tests/setup_test.sh`, `python3 src/installation/tests/orchestrator_ui_test.py`, `python3 src/installation/tests/transaction_test.py`, and `python3 src/installation/tests/portable_modules_test.py`.
 Run `python3 src/installation/tests/component_test.py` for component lifecycle checks.
+Run `python3 src/installation/tests/registry_routing_test.py` for direct and root wrapper routing across both scopes.

@@ -11,9 +11,11 @@ Read this first for the short map, then the relevant module README.
 | Ubuntu updates (`ubuntu-updates`) | `ubuntu-updates-{configure,status,logs,dry-run,run,restore}` | `src/ubuntu-updates/` | `src/ubuntu-updates/tests/ubuntu_updates_test.sh` |
 | Canary monitoring (`canary`) | `fs-tracker`, `canary-{configure,status,start,stop,remove,remove-all}` | `src/canary/` | `src/canary/tests/integration_test.sh` |
 | NGINX and Certbot (`vps-gateway`) | `vps-gateway-{configure,status,init,add,site-list,site-render}` | `src/vps-gateway/` | `src/vps-gateway/tests/vps_gateway_test.sh` |
-| Installation | `setup.sh`, `uninstall.sh` | `src/installation/orchestrate.py`, `catalog.py`, `manage.py` | `src/installation/tests/` |
+| Installation | `setup.sh`, `uninstall.sh` | `src/installation/orchestrate.py`, `uninstall_orchestrate.py`, `catalog.py`, `manage.py` | `src/installation/tests/` |
 
 `configuration/install.json` lists module manifest paths and shared installation scopes. Each `src/<module>/module.json` owns commands, examples, build and removal hooks, and presentation labels. `setup.sh` installs same-scope selections as one transaction through the shared registry installer. Mixed user/system selections require `--system` or separate commands. Reinstall removes unchanged obsolete owned files. Commands go to `~/.local/bin` by default or `/usr/local/bin` with `--system`. System setup also installs inactive backup/network cron templates. Root `uninstall.sh` removes selected registered modules. Copied modules use their own portable registry under `shell-scripts/portable/`.
+
+Root uninstall discovers both user and system registry entries, checks registered files on disk, and uses sudo for private system registry reads and removal when needed. System-only direct uninstall wrappers route through it. Copied module directories retain separate portable ownership.
 
 Use `--component system:update`, `system:amd-gaming`, or `system:h848-audio` to install or remove a single system utility. Full `--module system` remains available. Direct `src/system/setup.sh` and `uninstall.sh` use local names with `--component`.
 Interactive setup/uninstall selects `system` first and then shows a registry-filtered sub-module menu.
