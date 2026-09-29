@@ -9,7 +9,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from vps_site_add import add
+from vps_site_add import add, import_site
 from vps_site_init import init
 from vps_site_model import BLUEPRINTS, document_root, hostname, port, render_site
 
@@ -38,6 +38,10 @@ def main(argv: list[str] | None = None) -> int:
     subcommands.add_parser("list", help="list available blueprints")
     subcommands.add_parser("init", help="interactively install the first gateway site")
     subcommands.add_parser("add", help="interactively add a site to the initialized gateway")
+    imported = subcommands.add_parser("import", help="noninteractively activate a project site config")
+    imported.add_argument("--host", type=hostname, required=True)
+    imported.add_argument("--file", required=True, help="absolute path on this host, or - for standard input")
+    imported.add_argument("--replace", action="store_true", help="replace an existing site for this host")
     render = subcommands.add_parser("render", help="render a site to stdout or a new file")
     render.add_argument("blueprint", choices=BLUEPRINTS)
     render.add_argument("--host", type=hostname, required=True)
@@ -57,7 +61,7 @@ def main(argv: list[str] | None = None) -> int:
         except (EOFError, KeyboardInterrupt):
             print("\nSetup cancelled.", file=sys.stderr)
             return 1
-        except (OSError, RuntimeError, subprocess.CalledProcessError) as error:
+        except (OSError, RuntimeError, UnicodeError, subprocess.CalledProcessError) as error:
             print(f"First-run setup failed: {error}", file=sys.stderr)
             return 1
 
@@ -67,8 +71,25 @@ def main(argv: list[str] | None = None) -> int:
         except (EOFError, KeyboardInterrupt):
             print("\nSite addition cancelled.", file=sys.stderr)
             return 1
-        except (OSError, RuntimeError, subprocess.CalledProcessError) as error:
+        except (OSError, RuntimeError, UnicodeError, subprocess.CalledProcessError) as error:
             print(f"Site addition failed: {error}", file=sys.stderr)
+            return 1
+
+    if args.command == "import":
+        try:
+            if args.file == "-":
+                contents = sys.stdin.buffer.read()
+            else:
+                source = Path(args.file)
+                if not source.is_absolute() or source.is_symlink() or not source.is_file():
+                    parser.error("--file must be an absolute regular file, or - for standard input")
+                contents = source.read_bytes()
+            return import_site(args.host, contents, args.replace)
+        except KeyboardInterrupt:
+            print("\nSite import cancelled.", file=sys.stderr)
+            return 1
+        except (OSError, RuntimeError, UnicodeError, subprocess.CalledProcessError) as error:
+            print(f"Site import failed: {error}", file=sys.stderr)
             return 1
 
     example_host, example_port, example_root = BLUEPRINTS[args.blueprint]

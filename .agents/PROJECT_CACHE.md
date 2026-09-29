@@ -19,6 +19,6 @@ Each module directory can be copied out and installed without the repository usi
 
 The root wrapper also accepts `--ssh TARGET` for module and component setup/removal. It sends a portable module bundle, records successful remote deployments in the local user registry, and scans the target's portable state for selection and status. Remote removal still runs the module's portable hash checks. Network capture accepts named profiles plus port and IPv4 subnet filters; its module-owned capture registry records settings and checks whether the recorded PID is active.
 
-VPS-Gateway's first-run and add-site wizards offer blueprint generation or `import-existing`, which copies a project NGINX site config unchanged and validates it before reload. Generated sites use the shared `vps_gateway` query-free access-log format; imported configs own their logging policy.
+VPS-Gateway's first-run and add-site wizards offer blueprint generation or `import-existing`, which copies a project NGINX site config unchanged and validates it before reload. `vps-gateway-site-import --host NAME --file PATH|- [--replace]` supports noninteractive project deployments; replacements retain a private backup. Generated sites use the shared `vps_gateway` query-free access-log format; imported configs own their logging policy.
 
 Use the validation commands in the root README and avoid live host operations when testing. See `REPOSITORY_SPRING_CLEANING.md` for the structure and future change checklist.

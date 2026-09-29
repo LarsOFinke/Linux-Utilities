@@ -16,6 +16,7 @@
     "vps-gateway-add": "scripts/vps_site_workflow.sh",
     "vps-gateway-site-list": "scripts/vps_site_workflow.sh",
     "vps-gateway-site-render": "scripts/vps_site_workflow.sh",
+    "vps-gateway-site-import": "scripts/vps_site_workflow.sh",
     "vps_site_model.py": "scripts/vps_site_model.py",
     "vps_site_init.py": "scripts/vps_site_init.py",
     "vps_site_add.py": "scripts/vps_site_add.py",

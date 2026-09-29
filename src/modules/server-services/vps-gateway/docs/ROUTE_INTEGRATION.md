@@ -4,6 +4,14 @@ The [HTTP core](../configuration/core/http.conf.example) and [proxy header snipp
 
 If a project already has a complete NGINX site config, select `import-existing` in `sudo vps-gateway-init` or `sudo vps-gateway-add`. Enter its public hostname and absolute file path. The wizard copies the file unchanged to `sites-available`, creates the enabling symlink, tests NGINX, and reloads it. It refuses to overwrite a site and removes the new copy and symlink if validation or reload fails. The file must declare the selected hostname as an exact `server_name`; review referenced snippets, certificates, upstreams, listeners, and `access_log` policy before importing it.
 
+To automate that step from a project checkout after the gateway is initialized, stream the file over SSH:
+
+```bash
+ssh vps 'sudo -n vps-gateway-site-import --host app.example.org --file -' < deploy/nginx/site.conf
+```
+
+Use `--replace` for a reviewed update. Unchanged content is accepted without a reload. See the [gateway README](../README.md) for the file-path form, backup location, and sudo requirements.
+
 | Workload | Blueprint | Notes |
 | --- | --- | --- |
 | Any HTTP app | [`http-app`](../configuration/blueprints/http-app.conf.example) | Simple reverse proxy. |

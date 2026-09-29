@@ -7,6 +7,7 @@ case "$workflow" in
     vps-gateway-add) action=add ;;
     vps-gateway-site-list) action=list ;;
     vps-gateway-site-render) action=render ;;
+    vps-gateway-site-import) action=import ;;
     *) printf 'Unknown VPS site workflow: %s\n' "$workflow" >&2; exit 2 ;;
 esac
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)

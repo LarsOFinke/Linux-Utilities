@@ -24,24 +24,33 @@ def ask(label: str, validator) -> str | int:
             print(f"Invalid value: {error}", file=sys.stderr)
 
 
-def create_file(path: Path, contents: str, created: list[Path]) -> None:
+def create_file(path: Path, contents: str | bytes, created: list[Path]) -> None:
     descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
     created.append(path)
-    with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+    if isinstance(contents, bytes):
+        stream = os.fdopen(descriptor, "wb")
+    else:
+        stream = os.fdopen(descriptor, "w", encoding="utf-8")
+    with stream:
         stream.write(contents)
 
 
-def site_contents(choice: str, host: str, backend_port: int | None, root: str | None,
-                  site_templates: dict[str, str], source: Path | None) -> str:
-    if source is None:
-        return render_site(site_templates, choice, host, backend_port, root)
-    if source.is_symlink() or not source.is_file():
-        raise RuntimeError(f"project site config must be a regular file: {source}")
-    contents = source.read_text(encoding="utf-8")
-    active_lines = "\n".join(line.split("#", 1)[0] for line in contents.splitlines())
+def validate_site_contents(host: str, contents: bytes) -> None:
+    text = contents.decode("utf-8")
+    active_lines = "\n".join(line.split("#", 1)[0] for line in text.splitlines())
     names = re.findall(r"\bserver_name\s+([^;]+);", active_lines)
     if not any(host in declared.lower().split() for declared in names):
-        raise RuntimeError(f"project site config does not declare server_name {host}: {source}")
+        raise RuntimeError(f"site config does not declare server_name {host}")
+
+
+def site_contents(choice: str, host: str, backend_port: int | None, root: str | None,
+                  site_templates: dict[str, str], source: Path | None) -> str | bytes:
+    if source is None:
+        return render_site(site_templates, choice, host, backend_port, root)
+    if not source.is_absolute() or source.is_symlink() or not source.is_file():
+        raise RuntimeError(f"project site config must be an absolute regular file: {source}")
+    contents = source.read_bytes()
+    validate_site_contents(host, contents)
     return contents
 
 

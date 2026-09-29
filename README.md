@@ -50,7 +50,7 @@ Installed commands:
 | System utilities / Workstation setup | System utilities (`system`) | `install-amd-gaming`, `install-h848-audio-fix`, `uninstall-h848-audio-fix` |
 | Server services / Package maintenance | Manual APT updates (`system-update`) | `update-system` |
 | Server services / Package maintenance | Ubuntu automatic updates (`ubuntu-updates`) | `ubuntu-updates-configure`, `ubuntu-updates-status`, `ubuntu-updates-logs`, `ubuntu-updates-dry-run`, `ubuntu-updates-run`, `ubuntu-updates-restore` (system install) |
-| Server services / Web gateway | NGINX and Certbot setup (`vps-gateway`) | `vps-gateway-configure`, `vps-gateway-status`, `vps-gateway-init`, `vps-gateway-add`, `vps-gateway-site-list`, `vps-gateway-site-render` (system install) |
+| Server services / Web gateway | NGINX and Certbot setup (`vps-gateway`) | `vps-gateway-configure`, `vps-gateway-status`, `vps-gateway-init`, `vps-gateway-add`, `vps-gateway-site-list`, `vps-gateway-site-render`, `vps-gateway-site-import` (system install) |
 
 The previous multi-command entry points (`privacy-cleanup`, `ubuntu-updates`, `canary-control`, `vps-gateway`, and `vps-gateway-site`) remain installed for existing scripts. Each named workflow above can now be called directly. Some commands still require privileges for their own job. Privacy defaults to the current user's files without sudo; `--system` is optional and requires sudo. Read the module README before using a host-changing command.
 
@@ -58,7 +58,7 @@ The previous multi-command entry points (`privacy-cleanup`, `ubuntu-updates`, `c
 
 `canary` is system-scope because its named services use systemd and fanotify privileges. Setup compiles and installs the sensor but does not create or start a service. See the [canary guide](src/modules/monitoring/canary/README.md) for configuration and safe removal.
 
-`vps-gateway` is system-scope. Interactive setup offers a first-run wizard to choose a blueprint or copy an existing project NGINX site config, then activate the core, catch-all, and first site. Run `sudo vps-gateway-add` to add later hostnames through the same options. `sudo vps-gateway-configure` remains package-only. See the [VPS gateway guide](src/modules/server-services/vps-gateway/README.md).
+`vps-gateway` is system-scope. Interactive setup offers a first-run wizard to choose a blueprint or copy an existing project NGINX site config, then activate the core, catch-all, and first site. Run `sudo vps-gateway-add` to add later hostnames through the same options. Project installers can stream a config to `sudo vps-gateway-site-import --host NAME --file -` over SSH after initialization. `sudo vps-gateway-configure` remains package-only. See the [VPS gateway guide](src/modules/server-services/vps-gateway/README.md).
 
 ## Layout
 

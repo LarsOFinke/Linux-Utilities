@@ -46,6 +46,10 @@ cat > "$test_dir/bin/systemctl" <<'MOCK'
 printf 'systemctl %s\n' "$*" >> "$MOCK_CALLS"
 if [[ "$1" == is-active ]]; then
     [[ ${MOCK_ACTIVE:-0} == 1 ]]
+    exit
+fi
+if [[ "$1" == reload && ${MOCK_FAIL_RELOAD:-0} == 1 ]]; then
+    exit 1
 fi
 MOCK
 cat > "$test_dir/bin/certbot" <<'MOCK'
@@ -61,6 +65,7 @@ site_command="$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/vps-gateway-site"
 bin_dir="$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin"
 [[ -x "$command" ]]
 [[ -x "$site_command" ]]
+[[ -x "$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/vps-gateway-site-import" ]]
 [[ ! -e "$MOCK_CALLS" ]]
 
 PYTHONPATH="$repository/src/modules/server-services/vps-gateway/scripts" python3 - <<'PY'
@@ -175,6 +180,58 @@ if printf '7\nfailed.example.org\n%s\nn\ny\n' "$test_dir/failed-site.conf" | MOC
 fi
 [[ ! -e "$gateway_root/sites-available/failed.example.org.conf" ]]
 [[ ! -e "$gateway_root/sites-enabled/failed.example.org.conf" ]]
+
+cli_source="$test_dir/cli-site.conf"
+printf 'server {\r\n    listen 80;\r\n    server_name cli.example.org;\r\n    location / { return 204; }\r\n}\r\n' > "$cli_source"
+"$bin_dir/vps-gateway-site-import" --host cli.example.org --file "$cli_source"
+cmp "$cli_source" "$gateway_root/sites-available/cli.example.org.conf"
+[[ -L "$gateway_root/sites-enabled/cli.example.org.conf" ]]
+: > "$MOCK_CALLS"
+"$site_command" import --host cli.example.org --file - < "$cli_source"
+[[ ! -s "$MOCK_CALLS" ]]
+
+printf 'server {\n    listen 80;\n    server_name cli.example.org;\n    location / { return 205; }\n}\n' > "$test_dir/cli-update.conf"
+if "$bin_dir/vps-gateway-site-import" --host cli.example.org --file "$test_dir/cli-update.conf" >/dev/null 2>&1; then
+    echo 'Changing an existing site requires --replace' >&2
+    exit 1
+fi
+cmp "$cli_source" "$gateway_root/sites-available/cli.example.org.conf"
+
+"$bin_dir/vps-gateway-site-import" --host cli.example.org --file "$test_dir/cli-update.conf" --replace
+cmp "$test_dir/cli-update.conf" "$gateway_root/sites-available/cli.example.org.conf"
+backup_dir="$SHELL_SCRIPTS_INSTALL_ROOT/var/lib/shell-scripts/vps-gateway/backups"
+backup_files=("$backup_dir"/cli.example.org.*.conf)
+[[ ${#backup_files[@]} -eq 1 ]]
+cmp "$cli_source" "${backup_files[0]}"
+[[ $(stat -c %a "$backup_dir") == 700 ]]
+[[ $(stat -c %a "${backup_files[0]}") == 600 ]]
+if MOCK_FAIL_RELOAD=1 "$bin_dir/vps-gateway-site-import" --host cli.example.org --file "$cli_source" --replace >/dev/null 2>&1; then
+    echo 'Failed NGINX reload should restore the previous site' >&2
+    exit 1
+fi
+cmp "$test_dir/cli-update.conf" "$gateway_root/sites-available/cli.example.org.conf"
+
+sed 's/cli.example.org/newcli.example.org/' "$cli_source" > "$test_dir/new-cli.conf"
+if MOCK_FAIL_STAGED=1 "$bin_dir/vps-gateway-site-import" --host newcli.example.org --file "$test_dir/new-cli.conf" >/dev/null 2>&1; then
+    echo 'Failed new CLI import should remove staged files' >&2
+    exit 1
+fi
+[[ ! -e "$gateway_root/sites-available/newcli.example.org.conf" ]]
+[[ ! -e "$gateway_root/sites-enabled/newcli.example.org.conf" ]]
+if MOCK_FAIL_STAGED=1 "$bin_dir/vps-gateway-site-import" --host cli.example.org --file "$cli_source" --replace >/dev/null 2>&1; then
+    echo 'Failed site replacement should roll back' >&2
+    exit 1
+fi
+cmp "$test_dir/cli-update.conf" "$gateway_root/sites-available/cli.example.org.conf"
+
+if "$bin_dir/vps-gateway-site-import" --host wrong.example.org --file "$cli_source" >/dev/null 2>&1; then
+    echo 'CLI import should reject a mismatched hostname' >&2
+    exit 1
+fi
+if "$bin_dir/vps-gateway-site-import" --host cli.example.org --file cli-site.conf >/dev/null 2>&1; then
+    echo 'CLI import should require an absolute file path' >&2
+    exit 1
+fi
 
 rollback_root="$test_dir/rollback-root"
 rollback_nginx="$rollback_root/etc/nginx"
