@@ -2,6 +2,22 @@
 set -Eeuo pipefail
 module_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 if [[ -f "$module_dir/../installation/manage.py" ]]; then
-    exec python3 "$module_dir/../installation/manage.py" uninstall --module system "$@"
+    args=()
+    component_selected=false
+    while (( $# )); do
+        if [[ "$1" == --component ]]; then
+            (( $# >= 2 )) || { echo 'Missing component name' >&2; exit 2; }
+            args+=(--component "system:$2")
+            component_selected=true
+            shift 2
+        else
+            args+=("$1")
+            shift
+        fi
+    done
+    if [[ "$component_selected" == true ]]; then
+        exec python3 "$module_dir/../installation/manage.py" uninstall "${args[@]}"
+    fi
+    exec python3 "$module_dir/../installation/manage.py" uninstall --module system "${args[@]}"
 fi
 exec python3 "$module_dir/portable_module.py" uninstall "$@"

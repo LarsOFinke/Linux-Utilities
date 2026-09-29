@@ -2,6 +2,23 @@
 
 Install from the repository root with `src/system/setup.sh` or `./setup.sh --module system`. A copied module directory has its own `./setup.sh` and `./uninstall.sh`. Add `--system` and use sudo for system-wide command availability. Run the installed device tools as a normal desktop user; they invoke `sudo` only where needed.
 
+Install or remove the three utilities independently:
+
+```bash
+./setup.sh --component system:update
+./setup.sh --component system:amd-gaming
+./setup.sh --component system:h848-audio
+./uninstall.sh --component system:update
+
+# Direct entry points and copied modules use local component names:
+src/system/setup.sh --component h848-audio
+src/system/uninstall.sh --component h848-audio
+```
+
+`--module system` and direct entry points without `--component` still select all three. Removing `h848-audio` removes its command files; run `uninstall-h848-audio-fix` first if you also want an applied fix restored.
+
+Interactive root setup and uninstall first ask for `system`, then show a sub-module menu. Setup reads the selected scope's registry and lists only sub-modules not yet installed. Uninstall lists only installed sub-modules. Enter multiple numbers or `all` at that second menu to manage several at once.
+
 ## Package updates
 
 Run `update-system` to refresh APT package lists and install available upgrades with `apt upgrade -y`. The command uses `sudo` when run as a normal user and runs APT directly as root. It stops if `apt update` fails, so no upgrade is attempted with stale package lists. It accepts no arguments and does not perform a distribution upgrade or package removal. Run `bash src/system/tests/update_system_test.sh` for the mocked command and installation check.

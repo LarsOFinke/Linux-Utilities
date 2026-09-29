@@ -15,7 +15,7 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-from catalog import CATALOG, CATALOG_PATH, MODULES, REPOSITORY, choose_modules, load_catalog, relative_path
+from catalog import CATALOG, MODULES, REPOSITORY, choose_targets, component_commands, installed_components, selection_options
 
 DEFAULT_PROFILE_LINE = 'export PATH="$HOME/.local/bin:$PATH" # shell-scripts setup'
 
@@ -90,10 +90,15 @@ def copy_command(source: Path, target: Path, executable: bool) -> None:
             os.unlink(temporary)
 
 
-def build_commands(selected: list[str], directory: Path) -> dict[tuple[str, str], Path]:
+def build_commands(selected: list[str], directory: Path,
+                   components: dict[str, set[str] | None] | None = None) -> dict[tuple[str, str], Path]:
     built = {}
     for module in selected:
+        requested = (components or {}).get(module)
+        allowed = None if requested is None else component_commands(module, requested)
         for name, script in MODULES[module].get("build_commands", {}).items():
+            if allowed is not None and name not in allowed:
+                continue
             path = REPOSITORY / script
             if not path.is_file():
                 raise RuntimeError(f"Missing build script for {module}: {path}")
@@ -139,8 +144,23 @@ def ensure_user_path(home: Path, registry: dict, bin_dir: Path) -> Path | None:
 
 
 def install(selected: list[str], registry: dict, bin_dir: Path, registry_path: Path, system: bool,
-            built: dict[tuple[str, str], Path] | None = None) -> None:
+            built: dict[tuple[str, str], Path] | None = None,
+            components: dict[str, set[str] | None] | None = None) -> None:
     changes = copy.deepcopy(registry)
+    desired: dict[str, tuple[set[str], set[str] | None]] = {}
+    writing: dict[str, set[str]] = {}
+    for module in selected:
+        definition = MODULES[module]
+        requested = (components or {}).get(module)
+        if requested is None or not definition["components"]:
+            desired[module] = (set(definition["commands"]),
+                               set(definition["components"]) if definition["components"] else None)
+            writing[module] = set(definition["commands"])
+        else:
+            previous = registry["modules"].get(module)
+            names = set(requested) | (installed_components(module, previous) if previous else set())
+            desired[module] = (component_commands(module, names), names)
+            writing[module] = component_commands(module, requested)
     targets: dict[Path, tuple[str, dict | None]] = {}
     stale: dict[Path, dict] = {}
     for module in selected:
@@ -149,8 +169,9 @@ def install(selected: list[str], registry: dict, bin_dir: Path, registry_path: P
         if scope not in definition["scopes"]:
             raise RuntimeError(f"{module} does not support {scope} installation; choose a supported scope.")
         sources = [definition["manifest"], definition["setup"], definition["documentation"]]
-        sources.extend(definition["commands"].values())
-        sources.extend(definition.get("build_commands", {}).values())
+        sources.extend(definition["commands"][name] for name in writing[module])
+        sources.extend(script for name, script in definition.get("build_commands", {}).items()
+                       if name in writing[module])
         sources.extend(definition["examples"])
         sources.extend(definition["cron_templates"])
         if system and "system_cron" in definition:
@@ -161,14 +182,18 @@ def install(selected: list[str], registry: dict, bin_dir: Path, registry_path: P
     for module in selected:
         definition = MODULES[module]
         previous = registry["modules"].get(module, {}).get("commands", {})
-        for name in definition["commands"]:
+        for name in writing[module]:
             target = bin_dir / name
             recorded = previous.get(name)
             if target in targets:
                 raise RuntimeError(f"Selected modules share a command path: {target}")
             targets[target] = (module, recorded)
         for name, recorded in previous.items():
-            if name not in definition["commands"]:
+            if components is None or components.get(module) is None:
+                obsolete = name not in desired[module][0]
+            else:
+                obsolete = False
+            if obsolete:
                 target = Path(recorded["path"])
                 if target != bin_dir / name:
                     raise RuntimeError(f"Unexpected recorded command path: {target}")
@@ -218,8 +243,11 @@ def install(selected: list[str], registry: dict, bin_dir: Path, registry_path: P
         bin_dir.mkdir(parents=True, exist_ok=True)
         for module in selected:
             definition = MODULES[module]
-            commands = {}
+            commands = ({} if components is None or components.get(module) is None
+                        else copy.deepcopy(changes["modules"].get(module, {}).get("commands", {})))
             for name, source_relative in definition["commands"].items():
+                if name not in writing[module]:
+                    continue
                 source = (built or {}).get((module, name), REPOSITORY / source_relative)
                 target = bin_dir / name
                 copy_command(source, target, name not in definition.get("non_executable_commands", []))
@@ -245,6 +273,8 @@ def install(selected: list[str], registry: dict, bin_dir: Path, registry_path: P
                 "schedules": [item if item.startswith("user crontab:") else str(base / item) for item in definition.get("schedules", {}).get(scope, [])],
                 "pre_remove": definition.get("pre_remove"),
             }
+            if desired[module][1] is not None:
+                changes["modules"][module]["components"] = sorted(desired[module][1])
         for target in stale:
             target.unlink(missing_ok=True)
         changes["repository"] = str(REPOSITORY)
@@ -262,7 +292,7 @@ def install(selected: list[str], registry: dict, bin_dir: Path, registry_path: P
         print(f"Open a new shell or run: source {profile_notice}")
     for module in selected:
         definition = MODULES[module]
-        print(f"Installed {module}: {', '.join(name for name in definition['commands'] if name not in definition.get('non_executable_commands', []))}")
+        print(f"Installed {module}: {', '.join(name for name in definition['commands'] if name in writing[module] and name not in definition.get('non_executable_commands', []))}")
     print(f"Registry: {registry_path}")
 
 
@@ -286,22 +316,33 @@ def uninstall(
     base: Path,
     force: bool,
     purge_config: bool,
+    components: dict[str, set[str] | None] | None = None,
 ) -> None:
     for module in selected:
         entry = registry["modules"][module]
-        for name, record in entry["commands"].items():
+        requested = (components or {}).get(module)
+        if requested is None:
+            removing = set(entry["commands"])
+            owned = set()
+        else:
+            owned = installed_components(module, entry)
+            if not requested <= owned:
+                raise RuntimeError(f"Component is not installed for {module}: {', '.join(sorted(requested - owned))}")
+            removing = component_commands(module, requested)
+        for name in removing:
+            record = entry["commands"][name]
             target = Path(record["path"])
             if target.is_symlink():
                 raise RuntimeError(f"Refusing symbolic-link command: {target}")
             if target.exists() and not force and sha256(target) != record["sha256"]:
                 raise RuntimeError(f"Installed command changed locally: {target}; use --force to remove it.")
-        for path, record in entry.get("managed_cron_files", {}).items():
+        for path, record in (entry.get("managed_cron_files", {}) if requested is None else {}).items():
             target = Path(path)
             if target.is_symlink():
                 raise RuntimeError(f"Refusing symbolic-link cron file: {target}")
             if target.exists() and not force and sha256(target) != record["sha256"]:
                 raise RuntimeError(f"Installed cron file changed locally: {target}; use --force to remove it.")
-        hook = entry.get("pre_remove") or MODULES.get(module, {}).get("pre_remove")
+        hook = (entry.get("pre_remove") or MODULES.get(module, {}).get("pre_remove")) if requested is None else None
         if hook:
             command = entry["commands"][hook["command"]]
             target = Path(command["path"])
@@ -317,18 +358,25 @@ def uninstall(
             if hook.get("root_env"):
                 environment[hook["root_env"]] = str(base)
             subprocess.run(hook_args, env=environment, check=True)
-        for record in entry["commands"].values():
+        for name in removing:
+            record = entry["commands"][name]
             target = Path(record["path"])
             if target.is_file() and not target.is_symlink():
                 target.unlink()
-        for path in entry.get("managed_cron_files", {}):
+        for path in (entry.get("managed_cron_files", {}) if requested is None else {}):
             target = Path(path)
             if target.is_file() and not target.is_symlink():
                 target.unlink()
-        del registry["modules"][module]
+        if requested is None or requested == installed_components(module, entry):
+            del registry["modules"][module]
+        else:
+            for name in removing:
+                del entry["commands"][name]
+            entry["components"] = sorted(owned - requested)
         registry["updated_at"] = datetime.now(timezone.utc).isoformat()
         atomic_json(registry_path, registry)
-        print(f"Removed {module}")
+        label = module if requested is None else ", ".join(f"{module}:{name}" for name in sorted(requested))
+        print(f"Removed {label}")
     if not registry["modules"] and not system:
         remove_profile_line(base, registry)
         atomic_json(registry_path, registry)
@@ -340,6 +388,8 @@ def main() -> int:
     parser.add_argument("action", choices=["install", "uninstall"])
     parser.add_argument("--system", action="store_true", help="Use /usr/local/bin and the system registry")
     parser.add_argument("--module", action="append", default=[], help="Select a module by name; repeatable")
+    parser.add_argument("--component", action="append", default=[], metavar="MODULE:NAME",
+                        help="Select an independently managed component; repeatable")
     parser.add_argument("--all", action="store_true", help="Select all available modules")
     parser.add_argument("--list", action="store_true", help="List available or installed modules")
     parser.add_argument("--force", action="store_true", help="Remove locally modified installed commands")
@@ -348,18 +398,23 @@ def main() -> int:
     bin_dir, registry_path, base = paths(args.system)
     registry = read_registry(registry_path, "system" if args.system else "user", bin_dir)
     available = sorted(MODULES if args.action == "install" else registry["modules"])
+    available_components = (None if args.action == "install" else
+                            {module: installed_components(module, registry["modules"][module])
+                             for module in available if module in MODULES and MODULES[module]["components"]})
     if args.list:
-        print("\n".join(available))
+        print("\n".join(selection_options(available, available_components)))
         return 0
     if not available:
         raise RuntimeError("No installed modules are recorded.")
-    selected = choose_modules(args.module, args.all, available)
+    selection = choose_targets(args.module, args.component, args.all, available,
+                               available_components=available_components)
+    selected = list(selection)
     if args.action == "install":
         with tempfile.TemporaryDirectory(prefix="linux-utilities-build-") as directory:
-            built = build_commands(selected, Path(directory))
-            install(selected, registry, bin_dir, registry_path, args.system, built)
+            built = build_commands(selected, Path(directory), selection)
+            install(selected, registry, bin_dir, registry_path, args.system, built, selection)
     else:
-        uninstall(selected, registry, registry_path, args.system, base, args.force, args.purge_config)
+        uninstall(selected, registry, registry_path, args.system, base, args.force, args.purge_config, selection)
     return 0
 
 

@@ -4,6 +4,10 @@
 
 `setup.sh` at the repository root calls `orchestrate.py`, an interactive selector that sends the selection to the registry backend in `manage.py` as one batch. Each `src/<module>/setup.sh` can also be used directly through `setup_module.sh`. Root `uninstall.sh` calls the registry backend directly. `--module NAME` can be repeated; `--all` selects all available modules. `--list` shows available or installed modules.
 
+Modules with manifest `components` also accept repeatable `--component MODULE:NAME`. Each component owns a disjoint set of commands. Selecting the full module includes every component; selecting a component adds it to any previously installed components. Removing a component keeps its siblings. Older full-module registry records remain compatible. A copied module accepts `--component NAME`.
+
+Interactive selection shows modules first, then a sub-module menu for a componentized module. Setup filters that submenu using the selected scope's registry so it offers only components still available to install. Uninstall uses the registry to offer only installed components. Explicit `--module NAME` and `--all` still select full modules.
+
 The root [installation catalog](../../configuration/install.json) lists module manifests and shared destinations. Each module's `module.json` owns its commands, display name, category, build step, examples, and removal hook. The [catalog guide](../../configuration/README.md) documents the fields. Module IDs remain stable for CLI and registry compatibility.
 
 The root selector submits same-scope selections as one batch. Mixed user and system selections require `--system` or separate setup commands. Installation checks every selected file before copying, then restores installed files, the profile, and the registry if the batch fails. Reinstall removes obsolete owned commands and cron files only if their hashes still match the registry.
@@ -21,3 +25,4 @@ The `vps-gateway` module is system-only. Installation registers its host command
 When a module directory is copied elsewhere, its `setup.sh` and `uninstall.sh` use the bundled `portable_module.py` and a separate state file under `shell-scripts/portable/`. The canonical helper is `src/installation/portable_module.py`; run `python3 src/installation/sync_portable_helpers.py` after editing it. The portability test checks that copies stay byte-for-byte in sync. This local fallback has per-module rollback, while the root installer provides cross-module transactions and user PATH setup.
 
 The installation tests use temporary home and system prefixes: `bash src/installation/tests/setup_test.sh`, `python3 src/installation/tests/orchestrator_ui_test.py`, `python3 src/installation/tests/transaction_test.py`, and `python3 src/installation/tests/portable_modules_test.py`.
+Run `python3 src/installation/tests/component_test.py` for component lifecycle checks.

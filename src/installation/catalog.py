@@ -83,6 +83,29 @@ def load_catalog() -> dict:
         if not isinstance(helpers, list) or any(name not in commands for name in helpers):
             raise SystemExit(f"Invalid {module}.non_executable_commands in {manifest_path}")
         definition["non_executable_commands"] = helpers
+        components = source.get("components", {})
+        if not isinstance(components, dict):
+            raise SystemExit(f"Invalid {module}.components in {manifest_path}")
+        claimed: set[str] = set()
+        for name, component in components.items():
+            if (not isinstance(name, str) or not re.fullmatch(r"[a-z][a-z0-9-]*", name)
+                    or not isinstance(component, dict)
+                    or not isinstance(component.get("description"), str)
+                    or not component["description"].strip()
+                    or not isinstance(component.get("commands"), list)
+                    or not component["commands"]
+                    or any(not isinstance(command, str) or command not in commands
+                           for command in component["commands"])
+                    or len(set(component["commands"])) != len(component["commands"])):
+                raise SystemExit(f"Invalid {module}.components.{name} in {manifest_path}")
+            overlap = claimed.intersection(component["commands"])
+            if overlap:
+                raise SystemExit(f"Commands shared by {module} components: {', '.join(sorted(overlap))}")
+            claimed.update(component["commands"])
+        if components and (claimed != set(commands) or source.get("pre_remove") or source.get("post_install")
+                           or source.get("system_cron")):
+            raise SystemExit(f"{module} components must partition commands and have no module lifecycle hooks or cron")
+        definition["components"] = components
         for field in ("examples", "cron_templates"):
             items = source.get(field)
             if not isinstance(items, list):
@@ -140,11 +163,99 @@ CATALOG = load_catalog()
 MODULES = CATALOG["modules"]
 
 
+def component_commands(module: str, names: set[str]) -> set[str]:
+    definition = MODULES[module]
+    unknown = names - definition["components"].keys()
+    if unknown:
+        raise RuntimeError(f"Unknown component for {module}: {', '.join(sorted(unknown))}")
+    return {command for name in names for command in definition["components"][name]["commands"]}
+
+
+def installed_components(module: str, entry: dict) -> set[str]:
+    """Infer ownership for registries written before components existed."""
+    definitions = MODULES[module]["components"]
+    if not definitions:
+        return set()
+    recorded = entry.get("components")
+    if recorded is not None:
+        names = set(recorded)
+        component_commands(module, names)
+        if set(entry["commands"]) != component_commands(module, names):
+            raise RuntimeError(f"Inconsistent component registry for {module}")
+        return names
+    owned = set(entry["commands"])
+    names = {name for name, item in definitions.items() if owned.intersection(item["commands"])}
+    if owned != component_commands(module, names):
+        raise RuntimeError(f"Cannot infer components from legacy registry for {module}")
+    return names
+
+
+def selection_options(available: list[str],
+                      available_components: dict[str, set[str]] | None = None) -> list[str]:
+    """List valid component selections for the current install state."""
+    options = []
+    for module in available:
+        defined = MODULES.get(module, {}).get("components", {})
+        if defined:
+            names = (defined if available_components is None else
+                     (name for name in defined if name in available_components.get(module, set())))
+            options.extend(f"{module}:{name}" for name in names)
+        else:
+            options.append(module)
+    return options
+
+
+def choose_targets(requested_modules: list[str], requested_components: list[str],
+                   all_modules: bool, available: list[str],
+                   descriptions: dict[str, str] | None = None,
+                   available_components: dict[str, set[str]] | None = None) -> dict[str, set[str] | None]:
+    """Return modules selected in full (None) or selected component names."""
+    options = selection_options(available, available_components)
+    if all_modules and (requested_modules or requested_components):
+        raise RuntimeError("--all cannot be combined with --module or --component")
+    for spec in requested_components:
+        if spec not in options or ":" not in spec:
+            raise RuntimeError(f"Unknown or uninstalled component: {spec}")
+    if all_modules:
+        chosen = available
+    elif requested_modules or requested_components:
+        chosen = [*requested_modules, *requested_components]
+        unknown = set(requested_modules) - set(available)
+        if unknown:
+            raise RuntimeError(f"Unknown or uninstalled module: {', '.join(sorted(unknown))}")
+    else:
+        chosen = []
+        selected_modules = choose_modules([], False, available, descriptions)
+        for module in selected_modules:
+            definitions = MODULES.get(module, {}).get("components", {})
+            if not definitions:
+                chosen.append(module)
+                continue
+            names = [name for name in definitions if f"{module}:{name}" in options]
+            labels = {name: definitions[name]["description"] for name in names}
+            selected_names = choose_modules([], False, names, labels,
+                                            heading=f"{MODULES[module]['display_name']} sub-modules",
+                                            selection_label="sub-module")
+            chosen.extend(f"{module}:{name}" for name in selected_names)
+    selection: dict[str, set[str] | None] = {}
+    for item in chosen:
+        module, sep, name = item.partition(":")
+        if not sep:
+            selection[module] = None
+        elif module not in selection:
+            selection[module] = {name}
+        elif selection[module] is not None:
+            selection[module].add(name)
+    return selection
+
+
 def choose_modules(
     requested: list[str],
     all_modules: bool,
     available: list[str],
     descriptions: dict[str, str] | None = None,
+    heading: str = "Modules",
+    selection_label: str = "module",
 ) -> list[str]:
     if all_modules:
         return available
@@ -155,13 +266,13 @@ def choose_modules(
         return list(dict.fromkeys(requested))
     if not sys.stdin.isatty():
         raise RuntimeError("Choose modules with --module NAME or --all.")
-    print("Modules:")
+    print(f"{heading}:")
     for index, name in enumerate(available, 1):
         description = f" — {descriptions[name]}" if descriptions and name in descriptions else ""
         print(f"  {index}. {name}{description}")
     while True:
         try:
-            answer = input("Select numbers separated by commas, 'all', or 'q': ").strip()
+            answer = input(f"Select {selection_label} numbers separated by commas, 'all', or 'q': ").strip()
         except EOFError as error:
             raise RuntimeError("Selection cancelled.") from error
         if answer == "all":

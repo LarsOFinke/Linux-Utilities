@@ -128,7 +128,7 @@ def main() -> None:
             )
             os.close(slave)
             slave = -1
-            os.write(master, b"y\n1\nsite.example.org\n18081\nn\ny\n")
+            os.write(master, b"y\n1\nsite.example.org\n18081\n18081\nn\ny\n")
             if process.wait(timeout=20) != 0:
                 raise AssertionError("Interactive VPS gateway setup failed")
         finally:

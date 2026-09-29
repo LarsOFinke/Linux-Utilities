@@ -98,6 +98,27 @@ def read_state(path: Path, system: bool) -> dict:
     return state
 
 
+def component_commands(names: set[str]) -> set[str]:
+    components = MANIFEST.get("components", {})
+    unknown = names - components.keys()
+    if unknown:
+        fail(f"Unknown component: {', '.join(sorted(unknown))}")
+    return {command for name in names for command in components[name]["commands"]}
+
+
+def installed_components(state: dict) -> set[str]:
+    components = MANIFEST.get("components", {})
+    recorded = state.get("components")
+    if recorded is not None:
+        names = set(recorded)
+    else:
+        owned = set(state["commands"])
+        names = {name for name, item in components.items() if owned.intersection(item["commands"])}
+    if set(state["commands"]) != component_commands(names):
+        fail("Cannot infer components from standalone installation state")
+    return names
+
+
 def check_target(path: Path, record: dict | None, force: bool = False) -> None:
     if path.is_symlink():
         fail(f"Refusing symbolic-link file: {path}")
@@ -127,9 +148,14 @@ def hook_command(state: dict, system: bool, purge_config: bool, root: Path) -> t
     return command, environment
 
 
-def install(bin_dir: Path, state_path: Path, root: Path, system: bool) -> None:
+def install(bin_dir: Path, state_path: Path, root: Path, system: bool,
+            selected: set[str] | None = None) -> None:
     state = read_state(state_path, system)
-    commands = MANIFEST["commands"]
+    names = (set(MANIFEST.get("components", {})) if selected is None else
+             installed_components(state) | selected)
+    allowed = set(MANIFEST["commands"]) if selected is None else component_commands(names)
+    writing = allowed if selected is None else component_commands(selected)
+    commands = {name: source for name, source in MANIFEST["commands"].items() if name in writing}
     previous = state["commands"]
     cron = MANIFEST.get("system_cron") if system else None
     targets = {bin_dir / name: previous.get(name) for name in commands}
@@ -137,7 +163,8 @@ def install(bin_dir: Path, state_path: Path, root: Path, system: bool) -> None:
     if cron:
         cron_target = root / "etc/cron.d" / cron["name"]
         targets[cron_target] = old_cron.get(str(cron_target))
-    stale = {Path(record["path"]): record for name, record in previous.items() if name not in commands}
+    stale = ({Path(record["path"]): record for name, record in previous.items() if name not in allowed}
+             if selected is None else {})
     stale.update({Path(path): record for path, record in old_cron.items() if not cron or path != str(cron_target)})
     for path, record in targets.items():
         check_target(path, record)
@@ -154,13 +181,15 @@ def install(bin_dir: Path, state_path: Path, root: Path, system: bool) -> None:
     with tempfile.TemporaryDirectory(prefix=f"{NAME}-build-") as directory:
         built = {}
         for name, script in MANIFEST.get("build_commands", {}).items():
+            if name not in writing:
+                continue
             output = Path(directory) / name
             subprocess.run([str(local_path(script)), str(output)], check=True)
             if not output.is_file():
                 fail(f"Build script produced no output: {script}")
             built[name] = output
         try:
-            installed = {}
+            installed = {} if selected is None else dict(previous)
             for name, source in commands.items():
                 target = bin_dir / name
                 atomic_copy(built.get(name, local_path(source)), target, name not in MANIFEST.get("non_executable_commands", []))
@@ -172,7 +201,8 @@ def install(bin_dir: Path, state_path: Path, root: Path, system: bool) -> None:
             for path in stale:
                 path.unlink(missing_ok=True)
             atomic_json(state_path, {"id": NAME, "system": system, "commands": installed,
-                                     "cron": installed_cron, "pre_remove": MANIFEST.get("pre_remove")})
+                                     "cron": installed_cron, "pre_remove": MANIFEST.get("pre_remove"),
+                                     **({"components": sorted(names)} if MANIFEST.get("components") else {})})
         except Exception:
             for path, original in reversed(list(snapshots.items())):
                 restore_snapshot(path, original)
@@ -180,18 +210,33 @@ def install(bin_dir: Path, state_path: Path, root: Path, system: bool) -> None:
     print(f"Installed {MANIFEST['display_name']} to {bin_dir}")
 
 
-def uninstall(state_path: Path, state: dict, system: bool, force: bool, purge_config: bool, root: Path) -> None:
+def uninstall(state_path: Path, state: dict, system: bool, force: bool, purge_config: bool, root: Path,
+              selected: set[str] | None = None) -> None:
     if not state_path.exists():
         fail(f"No standalone installation recorded: {NAME}")
-    for record in [*state["commands"].values(), *state.get("cron", {}).values()]:
+    owned = installed_components(state) if selected is not None else set()
+    if selected is not None and not selected <= owned:
+        fail(f"Component is not installed: {', '.join(sorted(selected - owned))}")
+    removing = set(state["commands"]) if selected is None else component_commands(selected)
+    records = [state["commands"][name] for name in removing]
+    if selected is None:
+        records.extend(state.get("cron", {}).values())
+    for record in records:
         check_target(Path(record["path"]), record, force)
-    hook = hook_command(state, system, purge_config, root)
+    hook = hook_command(state, system, purge_config, root) if selected is None else None
     if hook:
         subprocess.run(hook[0], env=hook[1], check=True)
-    for record in [*state["commands"].values(), *state.get("cron", {}).values()]:
+    for record in records:
         Path(record["path"]).unlink(missing_ok=True)
-    state_path.unlink()
-    print(f"Removed {MANIFEST['display_name']}")
+    if selected is None or selected == owned:
+        state_path.unlink()
+    else:
+        for name in removing:
+            del state["commands"][name]
+        state["components"] = sorted(owned - selected)
+        atomic_json(state_path, state)
+    label = MANIFEST["display_name"] if selected is None else ", ".join(sorted(selected))
+    print(f"Removed {label}")
 
 
 def main() -> None:
@@ -201,16 +246,20 @@ def main() -> None:
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--purge-config", action="store_true")
     parser.add_argument("--no-configure", action="store_true")
+    parser.add_argument("--component", action="append", default=[], metavar="NAME")
     args = parser.parse_args()
     system = args.system or "user" not in MANIFEST["scopes"]
     scope = "system" if system else "user"
     if scope not in MANIFEST["scopes"]:
         fail(f"{NAME} does not support {scope} installation")
     bin_dir, state_path, root = locations(system)
+    selected = set(args.component) if args.component else None
+    if selected is not None:
+        component_commands(selected)
     if args.action == "install":
-        install(bin_dir, state_path, root, system)
+        install(bin_dir, state_path, root, system, selected)
     else:
-        uninstall(state_path, read_state(state_path, system), system, args.force, args.purge_config, root)
+        uninstall(state_path, read_state(state_path, system), system, args.force, args.purge_config, root, selected)
 
 
 if __name__ == "__main__":

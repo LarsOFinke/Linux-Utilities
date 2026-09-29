@@ -6,7 +6,7 @@ Read this first for the short map, then the relevant module README.
 | --- | --- | --- | --- |
 | Home backup (`backup`) | `backup-home`, `backup-home-cron`, `backup-home-prune`, `fetch-remote-backup` | `src/backup/` | `src/backup/tests/backup_home_test.sh` |
 | Packet capture (`network`) | `capture-traffic` | `src/network/` | `src/network/tests/capture_traffic_test.sh` |
-| System utilities (`system`) | `update-system`, `install-amd-gaming`, `install-h848-audio-fix`, `uninstall-h848-audio-fix` | `src/system/` | `src/system/tests/update_system_test.sh`, `h848_uninstall_test.sh` |
+| System utilities (`system`) | `update-system`, `install-amd-gaming`, `install-h848-audio-fix`, `uninstall-h848-audio-fix`; independently selectable `update`, `amd-gaming`, `h848-audio` components | `src/system/` | `src/system/tests/update_system_test.sh`, `h848_uninstall_test.sh`; `src/installation/tests/component_test.py` |
 | History and logs (`privacy`) | `privacy-configure`, `privacy-status`, `privacy-run` | `src/privacy/` | `src/privacy/tests/privacy_cleanup_test.sh` |
 | Ubuntu updates (`ubuntu-updates`) | `ubuntu-updates-{configure,status,logs,dry-run,run,restore}` | `src/ubuntu-updates/` | `src/ubuntu-updates/tests/ubuntu_updates_test.sh` |
 | Canary monitoring (`canary`) | `fs-tracker`, `canary-{configure,status,start,stop,remove,remove-all}` | `src/canary/` | `src/canary/tests/integration_test.sh` |
@@ -14,6 +14,9 @@ Read this first for the short map, then the relevant module README.
 | Installation | `setup.sh`, `uninstall.sh` | `src/installation/orchestrate.py`, `catalog.py`, `manage.py` | `src/installation/tests/` |
 
 `configuration/install.json` lists module manifest paths and shared installation scopes. Each `src/<module>/module.json` owns commands, examples, build and removal hooks, and presentation labels. `setup.sh` installs same-scope selections as one transaction through the shared registry installer. Mixed user/system selections require `--system` or separate commands. Reinstall removes unchanged obsolete owned files. Commands go to `~/.local/bin` by default or `/usr/local/bin` with `--system`. System setup also installs inactive backup/network cron templates. Root `uninstall.sh` removes selected registered modules. Copied modules use their own portable registry under `shell-scripts/portable/`.
+
+Use `--component system:update`, `system:amd-gaming`, or `system:h848-audio` to install or remove a single system utility. Full `--module system` remains available. Direct `src/system/setup.sh` and `uninstall.sh` use local names with `--component`.
+Interactive setup/uninstall selects `system` first and then shows a registry-filtered sub-module menu.
 
 Backup creation uses `src/backup/scripts/backup_home_common.sh`, with a lock, private verified temporary archive, unique snapshots, and an atomic latest pointer. Network rotation tracks only its own PID. The audio installer restores original files on uninstall. Privacy defaults to user-only history and user-log cleanup; `--system` is optional for journal and rotated host logs.
 

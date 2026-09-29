@@ -9,17 +9,22 @@ Setup and uninstall require Python 3.9 or newer. Runtime requirements are listed
 ```bash
 ./setup.sh                         # interactive user install
 ./setup.sh --module backup --module privacy
+./setup.sh --component system:update
+./setup.sh --component system:h848-audio
 sudo ./setup.sh --system --all
 ./setup.sh --list
 src/privacy/setup.sh              # direct setup of one module
 src/privacy/uninstall.sh          # direct removal of one module
 ./uninstall.sh                     # interactive module selection
 ./uninstall.sh --module privacy
+./uninstall.sh --component system:update
 ```
 
 You can run any `src/<module>/setup.sh` or `uninstall.sh` directly. Within this checkout, they use the shared registry and transaction manager. A copied module directory uses its own `module.json` and portable installer with a separate registry under `shell-scripts/portable/`. Its installed commands work without the repository; use the full path to `~/.local/bin` if that directory is not on PATH. Privacy's repository setup offers to configure retention when run in a terminal; `--no-configure` skips that prompt. Scripted root installs stay noninteractive.
 
 The root selector installs all selected modules in one transaction for one scope. The `ubuntu-updates`, `canary`, and `vps-gateway` modules require system scope; combine them with other modules using `--system`, or install them separately. An install failure restores the previously installed files and registry. Reinstall removes obsolete managed commands and cron templates when their installed copies are unchanged; locally edited copies block the reinstall.
+
+The `system` module offers independently managed `system:update`, `system:amd-gaming`, and `system:h848-audio` components. In the interactive menu, select `system` first, then select one or more sub-modules. Setup shows sub-modules not yet installed; uninstall shows only those recorded as installed. Use repeatable `--component MODULE:NAME` options for scripted selection. Explicit `--module system` still selects all three. Adding or removing one component leaves installed siblings registered. `--list` reflects the available setup or uninstall selections. Installing these commands does not run the utilities.
 
 The default installation copies selected commands to `~/.local/bin` and records them in `~/.local/state/shell-scripts/registry.json`. The existing `shell-scripts` state paths and markers stay in place so installed modules remain manageable after the project rename. If needed, setup adds `~/.local/bin` to `~/.profile`; open a new shell or source that file before calling commands by name. The registry records command paths and hashes, source files, configuration examples, cron templates, and runtime policy paths. Uninstall removes only registered commands, refuses locally modified files unless `--force` is supplied, and removes managed privacy schedules. It preserves privacy policy files unless `--purge-config` is supplied.
 
@@ -85,4 +90,5 @@ bash src/installation/tests/setup_test.sh
 python3 src/installation/tests/orchestrator_ui_test.py
 python3 src/installation/tests/transaction_test.py
 python3 src/installation/tests/portable_modules_test.py
+python3 src/installation/tests/component_test.py
 ```

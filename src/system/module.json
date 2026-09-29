@@ -18,6 +18,20 @@
     "h848_audio_lifecycle.sh",
     "h848_audio_guard.sh"
   ],
+  "components": {
+    "update": {
+      "description": "APT package updates",
+      "commands": ["update-system"]
+    },
+    "amd-gaming": {
+      "description": "AMD gaming package setup",
+      "commands": ["install-amd-gaming"]
+    },
+    "h848-audio": {
+      "description": "H848 audio fix and removal",
+      "commands": ["install-h848-audio-fix", "uninstall-h848-audio-fix", "h848_audio_lifecycle.sh", "h848_audio_guard.sh"]
+    }
+  },
   "examples": [],
   "cron_templates": [],
   "scopes": [
