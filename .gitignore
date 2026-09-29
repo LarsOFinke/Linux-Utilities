@@ -6,13 +6,16 @@
 # Local configuration and generated data
 *.env
 !*.env.example
+# Intentional fake credential files shipped in the canary project template.
 !src/modules/monitoring/canary/tools/canary_project/templates/standard/api/.env
 !src/modules/monitoring/canary/tools/canary_project/templates/standard/config/app.env
 *.cfg
 !*.cfg.example
 *.pcap
+*.pcapng
 *.tar.bz2
 *.pid
+*.lock
 *.log
 *.egg-info/
 .venv/
@@ -21,3 +24,18 @@ dist/
 *.jsonl
 __pycache__/
 *.pyc
+
+# Runtime state if HOME or a test install root points into this checkout.
+**/.local/
+**/.config/
+**/var/lib/
+**/var/log/
+**/usr/local/bin/
+**/etc/cron.d/
+**/etc/fs-tracker/
+**/etc/privacy-cleanup/
+**/etc/nginx/
+**/etc/apt/apt.conf.d/99-shell-scripts-unattended-upgrades
+**/etc/systemd/system/fs-file-monitor-*.service
+**/registry.json
+**/network-capture.json
