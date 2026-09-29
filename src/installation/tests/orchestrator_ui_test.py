@@ -11,6 +11,7 @@ import tempfile
 from pathlib import Path
 
 REPOSITORY = Path(__file__).resolve().parents[3]
+CATALOG = json.loads((REPOSITORY / "configuration/install.json").read_text(encoding="utf-8"))["modules"]
 
 
 def main() -> None:
@@ -56,7 +57,7 @@ def main() -> None:
 
         for module in ("backup", "network", "system", "privacy"):
             subprocess.run(
-                [str(REPOSITORY / "src" / module / "setup.sh"), "--no-configure"],
+                [str((REPOSITORY / CATALOG[module]).parent / "setup.sh"), "--no-configure"],
                 env=environment,
                 cwd=temporary,
                 stdout=subprocess.DEVNULL,
@@ -81,7 +82,7 @@ def main() -> None:
         master, slave = pty.openpty()
         try:
             process = subprocess.Popen(
-                [str(REPOSITORY / "src/privacy/setup.sh")],
+                [str(REPOSITORY / "src/modules/data-privacy/privacy/setup.sh")],
                 cwd=REPOSITORY,
                 env=environment,
                 stdin=slave,

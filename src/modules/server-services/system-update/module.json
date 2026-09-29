@@ -1,0 +1,16 @@
+{
+  "display_name": "Manual APT updates",
+  "category": "Server services",
+  "subcategory": "Package maintenance",
+  "description": "manual APT refresh and upgrade command",
+  "schema_version": 1,
+  "id": "system-update",
+  "setup": "setup.sh",
+  "documentation": "README.md",
+  "commands": {
+    "update-system": "scripts/update_system.sh"
+  },
+  "examples": [],
+  "cron_templates": [],
+  "scopes": ["user", "system"]
+}

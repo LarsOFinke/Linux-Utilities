@@ -1,0 +1,27 @@
+# Repository spring cleaning
+
+## Architecture
+
+The repository is a wrapper around independent modules. Root `setup.sh` and `uninstall.sh` provide discovery, selection, scope routing, transactions, and registry based ownership. The implementation is in `src/installation/`; `configuration/install.json` is the single map from stable module IDs to manifests. A module must not depend on the wrapper after its directory is copied elsewhere.
+
+Modules live under `src/modules/<concern>/<module>/`. The concern directories are `data-privacy`, `monitoring`, `system-utilities`, and `server-services`. Each module owns `module.json`, `README.md`, `setup.sh`, `uninstall.sh`, scripts or components, and focused tests. A manifest carries a category and a subcategory for navigation; those labels may change without changing the stable ID. Use a component in a module only when the tasks share a cohesive purpose and need independently selectable install ownership.
+
+The `system` module contains the `amd-gaming` and `h848-audio` components. Manual APT updates moved to `server-services/system-update` as an independent module. `ubuntu-updates` owns unattended upgrade policy and remains distinct. `backup` separates snapshot and remote scripts. Other modules keep their own internal structure because their files already belong to one concern.
+
+## Ownership and migration
+
+Registry entries identify installed commands by path and hash. Shared uninstall reads both user and system registries, verifies the installed files, and removes only owned paths. The prior `system:update` registry record is translated to `system-update` when loaded; its `update-system` command remains removable without reinstalling. Existing stable module IDs, command names, registry locations, and copied module behavior remain the compatibility boundary. Do not infer removal solely from the current source tree.
+
+## Adding or moving a module
+
+1. Put its complete standalone directory under the appropriate concern. Update its manifest, README, and direct entry points.
+2. Add or change its manifest path in `configuration/install.json`. Keep the ID stable when only moving files. If ownership changes, provide a registry migration.
+3. Update source paths used by commands, build hooks, templates, and tests. Run `python3 src/installation/sync_portable_helpers.py` to refresh every copied portable helper.
+4. Test direct setup/uninstall, root setup/uninstall in both supported scopes, partial component ownership if present, and a copied module. Use temporary HOME and install roots.
+5. Update the root README and `PROJECT_CACHE.md`. Keep secrets, local settings, build output, and generated state out of Git.
+
+## Final sweep
+
+After moving a module or component, inspect the old location and remove empty directories and generated caches. Search manifests, scripts, tests, and documentation for stale source paths and old ownership names. Keep references to retired names only where they explain or implement compatibility migration. Check `git status --short --untracked-files=all` for stray generated files, then run the focused lifecycle tests, Bash syntax checks, ShellCheck, and `git diff --check` before committing.
+
+See `ONBOARDING.md` and `QUALITIES.md` for routine changes and required qualities.

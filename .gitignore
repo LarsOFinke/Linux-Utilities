@@ -6,8 +6,8 @@
 # Local configuration and generated data
 *.env
 !*.env.example
-!src/canary/tools/canary_project/templates/standard/api/.env
-!src/canary/tools/canary_project/templates/standard/config/app.env
+!src/modules/monitoring/canary/tools/canary_project/templates/standard/api/.env
+!src/modules/monitoring/canary/tools/canary_project/templates/standard/config/app.env
 *.cfg
 !*.cfg.example
 *.pcap

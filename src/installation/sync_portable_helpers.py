@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
 """Copy the canonical standalone installer into every self-contained module."""
 
+import json
 from pathlib import Path
 
 SOURCE = Path(__file__).resolve().parent / "portable_module.py"
-MODULES = ("backup", "network", "system", "privacy", "ubuntu-updates", "canary", "vps-gateway")
+REPOSITORY = SOURCE.parents[2]
 
 
 def main() -> None:
     content = SOURCE.read_bytes()
-    for name in MODULES:
-        target = SOURCE.parent.parent / name / "portable_module.py"
+    catalog = json.loads((REPOSITORY / "configuration/install.json").read_text(encoding="utf-8"))
+    for manifest in catalog["modules"].values():
+        target = (REPOSITORY / manifest).parent / "portable_module.py"
         target.write_bytes(content)
-        print(target.relative_to(SOURCE.parents[2]))
+        print(target.relative_to(REPOSITORY))
 
 
 if __name__ == "__main__":

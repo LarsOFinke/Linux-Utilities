@@ -1,0 +1,67 @@
+{
+  "display_name": "History and log cleanup",
+  "category": "Data and privacy",
+  "subcategory": "Retention",
+  "description": "retention for user history and system logs",
+  "schema_version": 1,
+  "id": "privacy",
+  "setup": "setup.sh",
+  "documentation": "README.md",
+  "commands": {
+    "privacy-cleanup": "scripts/privacy_cleanup.sh",
+    "privacy-configure": "scripts/privacy_workflow.sh",
+    "privacy-status": "scripts/privacy_workflow.sh",
+    "privacy-run": "scripts/privacy_workflow.sh",
+    "privacy-scheduled": "scripts/privacy_workflow.sh",
+    "privacy-uninstall-schedule": "scripts/privacy_workflow.sh",
+    "privacy_policy.sh": "scripts/privacy_policy.sh",
+    "privacy_schedule.sh": "scripts/privacy_schedule.sh",
+    "privacy_clean.sh": "scripts/privacy_clean.sh"
+  },
+  "non_executable_commands": [
+    "privacy_policy.sh",
+    "privacy_schedule.sh",
+    "privacy_clean.sh"
+  ],
+  "examples": [
+    "configuration/user.cfg.example",
+    "configuration/system.cfg.example"
+  ],
+  "cron_templates": [
+    "cronjobs/privacy-cleanup.cron"
+  ],
+  "runtime_configs": {
+    "user": [
+      ".config/privacy-cleanup/user.cfg"
+    ],
+    "system": [
+      "etc/privacy-cleanup/system.cfg"
+    ]
+  },
+  "schedules": {
+    "user": [
+      "user crontab: # privacy-cleanup user"
+    ],
+    "system": [
+      "etc/cron.d/privacy-cleanup"
+    ]
+  },
+  "pre_remove": {
+    "command": "privacy-uninstall-schedule",
+    "args": [],
+    "system_arg": "--system",
+    "purge_arg": "--purge-config",
+    "root_env": "PRIVACY_ROOT"
+  },
+  "post_install": {
+    "command": "privacy-configure",
+    "args": [],
+    "system_arg": "--system",
+    "root_env": "PRIVACY_ROOT",
+    "prompt": "Configure history and log retention now?"
+  },
+  "scopes": [
+    "user",
+    "system"
+  ]
+}

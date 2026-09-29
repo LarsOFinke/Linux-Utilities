@@ -11,8 +11,7 @@ import tempfile
 from pathlib import Path
 
 REPOSITORY = Path(__file__).resolve().parents[3]
-SOURCE = REPOSITORY / "src"
-MODULES = ("backup", "network", "system", "privacy", "ubuntu-updates", "canary", "vps-gateway")
+CATALOG = json.loads((REPOSITORY / "configuration/install.json").read_text(encoding="utf-8"))["modules"]
 
 
 def run(command: list[str | Path], environment: dict[str, str], **kwargs: object) -> subprocess.CompletedProcess[str]:
@@ -20,7 +19,7 @@ def run(command: list[str | Path], environment: dict[str, str], **kwargs: object
 
 
 def main() -> None:
-    helper = (SOURCE / "installation/portable_module.py").read_bytes()
+    helper = (REPOSITORY / "src/installation/portable_module.py").read_bytes()
     with tempfile.TemporaryDirectory() as temporary:
         root = Path(temporary)
         home = root / "home"
@@ -49,9 +48,10 @@ def main() -> None:
             PYTHONDONTWRITEBYTECODE="1",
             PATH=f"{mock_bin}:{os.environ['PATH']}",
         )
-        for name in MODULES:
+        for name, manifest_path in CATALOG.items():
             copied = root / "modules" / name
-            shutil.copytree(SOURCE / name, copied, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+            shutil.copytree((REPOSITORY / manifest_path).parent, copied,
+                            ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
             assert (copied / "portable_module.py").read_bytes() == helper, name
             manifest = json.loads((copied / "module.json").read_text(encoding="utf-8"))
             system = "user" not in manifest["scopes"]

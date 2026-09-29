@@ -11,7 +11,8 @@ import tempfile
 from pathlib import Path
 
 REPOSITORY = Path(__file__).resolve().parents[3]
-MODULES = ("backup", "network", "system", "privacy", "ubuntu-updates", "canary", "vps-gateway")
+CATALOG = json.loads((REPOSITORY / "configuration/install.json").read_text(encoding="utf-8"))["modules"]
+MODULES = tuple(CATALOG)
 SYSTEM_ONLY = ("ubuntu-updates", "canary", "vps-gateway")
 
 
@@ -23,6 +24,10 @@ def run(*args: str | Path, environment: dict[str, str]) -> str:
 
 def registered(path: Path) -> set[str]:
     return set(json.loads(path.read_text(encoding="utf-8"))["modules"])
+
+
+def module_entry(module: str, entry: str) -> Path:
+    return (REPOSITORY / CATALOG[module]).parent / entry
 
 
 def interactive_uninstall(environment: dict[str, str]) -> None:
@@ -52,7 +57,7 @@ def main() -> None:
         system_registry = system_root / "var/lib/shell-scripts/registry.json"
 
         for module in MODULES:
-            run(REPOSITORY / "src" / module / "setup.sh", "--no-configure", environment=environment)
+            run(module_entry(module, "setup.sh"), "--no-configure", environment=environment)
         assert registered(user_registry) == set(MODULES) - set(SYSTEM_ONLY)
         assert registered(system_registry) == set(SYSTEM_ONLY)
         catalog = json.loads((REPOSITORY / "configuration/install.json").read_text(encoding="utf-8"))
@@ -77,10 +82,10 @@ def main() -> None:
         update.write_bytes(original)
 
         for module in SYSTEM_ONLY:
-            run(REPOSITORY / "src" / module / "uninstall.sh", environment=environment)
+            run(module_entry(module, "uninstall.sh"), environment=environment)
         assert not registered(system_registry)
-        for module in ("backup", "privacy", "system"):
-            run(REPOSITORY / "src" / module / "uninstall.sh", environment=environment)
+        for module in ("backup", "privacy", "system", "system-update"):
+            run(module_entry(module, "uninstall.sh"), environment=environment)
         assert registered(user_registry) == {"network"}
 
         run(REPOSITORY / "setup.sh", "--system", "--module", "network", environment=environment)
@@ -88,23 +93,23 @@ def main() -> None:
         run(REPOSITORY / "uninstall.sh", "--module", "network", environment=environment)
         assert not registered(user_registry)
         assert registered(system_registry) == {"network"}
-        run(REPOSITORY / "src/network/uninstall.sh", environment=environment)
+        run(REPOSITORY / "src/modules/monitoring/network/uninstall.sh", environment=environment)
         assert not registered(system_registry)
         run(REPOSITORY / "setup.sh", "--system", "--module", "network", environment=environment)
         run(REPOSITORY / "uninstall.sh", "--system", "--module", "network", environment=environment)
         assert not registered(system_registry)
 
-        run(REPOSITORY / "setup.sh", "--system", "--component", "system:update", environment=environment)
-        assert registered(system_registry) == {"system"}
-        run(REPOSITORY / "src/system/uninstall.sh", "--component", "update", environment=environment)
+        run(REPOSITORY / "setup.sh", "--system", "--module", "system-update", environment=environment)
+        assert registered(system_registry) == {"system-update"}
+        run(module_entry("system-update", "uninstall.sh"), environment=environment)
         assert not registered(system_registry)
 
-        run(REPOSITORY / "setup.sh", "--component", "system:update", environment=environment)
+        run(REPOSITORY / "setup.sh", "--module", "system-update", environment=environment)
         run(REPOSITORY / "setup.sh", "--system", "--component", "system:amd-gaming", environment=environment)
-        run(REPOSITORY / "src/system/uninstall.sh", "--component", "amd-gaming", environment=environment)
-        assert registered(user_registry) == {"system"}
+        run(module_entry("system", "uninstall.sh"), "--component", "amd-gaming", environment=environment)
+        assert registered(user_registry) == {"system-update"}
         assert not registered(system_registry)
-        run(REPOSITORY / "uninstall.sh", "--component", "system:update", environment=environment)
+        run(REPOSITORY / "uninstall.sh", "--module", "system-update", environment=environment)
         assert not registered(user_registry)
 
         run(REPOSITORY / "setup.sh", "--module", "ubuntu-updates", environment=environment)

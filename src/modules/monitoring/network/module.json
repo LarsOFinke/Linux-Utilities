@@ -1,0 +1,27 @@
+{
+  "display_name": "Packet capture",
+  "category": "Monitoring",
+  "subcategory": "Network capture",
+  "description": "managed packet capture and archive rotation",
+  "schema_version": 1,
+  "id": "network",
+  "setup": "setup.sh",
+  "documentation": "README.md",
+  "commands": {
+    "capture-traffic": "scripts/capture_traffic.sh"
+  },
+  "examples": [
+    "configuration/capture.env.example"
+  ],
+  "cron_templates": [
+    "cronjobs/capture_traffic.cron"
+  ],
+  "system_cron": {
+    "source": "cronjobs/capture_traffic.cron",
+    "name": "capture-traffic"
+  },
+  "scopes": [
+    "user",
+    "system"
+  ]
+}

@@ -29,7 +29,7 @@ registry="$HOME/.local/state/shell-scripts/registry.json"
 [[ -x "$HOME/.local/bin/backup-home-cron" && -x "$HOME/.local/bin/privacy-cleanup" ]]
 [[ -f "$HOME/.local/bin/backup_home_common.sh" ]]
 rg -q 'shell-scripts setup' "$HOME/.profile"
-python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert set(d["modules"]) == {"backup","privacy"}; assert d["modules"]["backup"]["commands"]["backup-home"]["source"].endswith("src/backup/scripts/backup_home.sh"); assert d["modules"]["privacy"]["setup_script"].endswith("src/privacy/setup.sh")' "$registry"
+python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert set(d["modules"]) == {"backup","privacy"}; assert d["modules"]["backup"]["commands"]["backup-home"]["source"].endswith("src/modules/data-privacy/backup/scripts/snapshot/backup_home.sh"); assert d["modules"]["privacy"]["setup_script"].endswith("src/modules/data-privacy/privacy/setup.sh")' "$registry"
 
 printf 'content\n' >"$test_dir/homes/sampleuser/data.txt"
 BACKUP_SOURCE_ROOT="$test_dir/homes" BACKUP_ROOT="$test_dir/archives" \
@@ -40,7 +40,7 @@ printf '0 1 * * * echo existing\n' >"$MOCK_CRONTAB"
 printf '\n\n\n\n\n' | "$HOME/.local/bin/privacy-cleanup" configure
 PATH="$HOME/.local/bin:$PATH" bash -c 'cd /tmp && privacy-cleanup status' >/dev/null
 rg -q 'privacy-cleanup user' "$MOCK_CRONTAB"
-"$project_root/src/privacy/uninstall.sh"
+"$project_root/src/modules/data-privacy/privacy/uninstall.sh"
 [[ ! -e "$HOME/.local/bin/privacy-cleanup" && -x "$HOME/.local/bin/backup-home" ]]
 [[ -f "$HOME/.config/privacy-cleanup/user.cfg" ]]
 rg -q 'echo existing' "$MOCK_CRONTAB"

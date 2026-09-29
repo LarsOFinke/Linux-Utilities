@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check independent system utility ownership in shared and copied installs."""
+"""Check independent component lifecycle and migration of the former update component."""
 
 from __future__ import annotations
 
@@ -12,16 +12,16 @@ import tempfile
 from pathlib import Path
 
 REPOSITORY = Path(__file__).resolve().parents[3]
-SYSTEM = REPOSITORY / "src/system"
+SYSTEM = REPOSITORY / "src/modules/system-utilities/system"
 
 
-def run(*args: str | Path, environment: dict[str, str]) -> None:
-    subprocess.run([str(arg) for arg in args], env=environment, check=True,
-                   stdout=subprocess.DEVNULL)
+def run(*args: str | Path, environment: dict[str, str]) -> str:
+    return subprocess.run([str(arg) for arg in args], env=environment, check=True,
+                          capture_output=True, text=True).stdout
 
 
-def commands(path: Path) -> set[str]:
-    return set(json.loads(path.read_text(encoding="utf-8"))["modules"]["system"]["commands"])
+def records(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))["modules"]
 
 
 def interactive(command: Path, answers: bytes, environment: dict[str, str]) -> str:
@@ -61,61 +61,52 @@ def main() -> None:
         registry = home / ".local/state/shell-scripts/registry.json"
 
         output = interactive(REPOSITORY / "setup.sh", b"5\n1\n", environment)
-        assert "5. system" in output and "1. update" in output
-        assert commands(registry) == {"update-system"}
+        assert "5. system" in output and "1. amd-gaming" in output
+        assert set(records(registry)["system"]["commands"]) == {"install-amd-gaming"}
         output = interactive(REPOSITORY / "setup.sh", b"5\n1\n", environment)
-        assert "1. amd-gaming" in output and "update —" not in output
-        assert commands(registry) == {"update-system", "install-amd-gaming"}
-        output = interactive(REPOSITORY / "uninstall.sh", b"1\n2\n", environment)
-        assert "1. update" in output and "2. amd-gaming" in output
-        assert commands(registry) == {"update-system"}
-        listed = subprocess.run([str(REPOSITORY / "uninstall.sh"), "--list"], env=environment,
-                                text=True, capture_output=True, check=True).stdout
-        assert "system:amd-gaming" not in listed
+        assert "1. h848-audio" in output and "amd-gaming —" not in output
+        assert "install-h848-audio-fix" in records(registry)["system"]["commands"]
+        output = interactive(REPOSITORY / "uninstall.sh", b"1\n1\n", environment)
+        assert "1. amd-gaming" in output and "2. h848-audio" in output
+        assert "install-amd-gaming" not in records(registry)["system"]["commands"]
         run(REPOSITORY / "uninstall.sh", "--module", "system", environment=environment)
+        assert "system" not in records(registry)
 
-        run(REPOSITORY / "setup.sh", "--component", "system:update", environment=environment)
-        assert commands(registry) == {"update-system"}
-        assert not (binary / "install-amd-gaming").exists()
+        run(REPOSITORY / "setup.sh", "--module", "system-update", environment=environment)
+        run(REPOSITORY / "setup.sh", "--component", "system:amd-gaming", environment=environment)
         update = binary / "update-system"
         original_update = update.read_bytes()
         update.write_bytes(original_update + b"# local edit\n")
         run(SYSTEM / "setup.sh", "--component", "h848-audio", environment=environment)
         assert update.read_bytes() == original_update + b"# local edit\n"
-        assert commands(registry) == {"update-system", "install-h848-audio-fix",
-                                      "uninstall-h848-audio-fix", "h848_audio_lifecycle.sh",
-                                      "h848_audio_guard.sh"}
         update.write_bytes(original_update)
-        run(REPOSITORY / "uninstall.sh", "--component", "system:update", environment=environment)
-        assert not (binary / "update-system").exists()
-        assert (binary / "install-h848-audio-fix").exists()
-        run(SYSTEM / "uninstall.sh", "--component", "h848-audio", environment=environment)
-        assert "system" not in json.loads(registry.read_text(encoding="utf-8"))["modules"]
 
-        run(REPOSITORY / "setup.sh", "--module", "system", environment=environment)
+        # Simulate a registry written by the previous three-component system module.
         record = json.loads(registry.read_text(encoding="utf-8"))
-        del record["modules"]["system"]["components"]  # registry written by an older version
+        old = record["modules"].pop("system-update")
+        system = record["modules"]["system"]
+        system["commands"].update(old["commands"])
+        system["components"] = ["update", "amd-gaming", "h848-audio"]
         registry.write_text(json.dumps(record), encoding="utf-8")
-        run(REPOSITORY / "uninstall.sh", "--component", "system:amd-gaming", environment=environment)
-        assert not (binary / "install-amd-gaming").exists()
-        assert (binary / "update-system").exists()
-        assert (binary / "install-h848-audio-fix").exists()
+        listed = run(REPOSITORY / "uninstall.sh", "--list", environment=environment)
+        assert "system-update [user]" in listed
+        assert "system:amd-gaming" in listed and "system:h848-audio" in listed
+        run(REPOSITORY / "uninstall.sh", "--module", "system-update", environment=environment)
+        assert not update.exists()
+        assert "system-update" not in records(registry)
+        assert "install-h848-audio-fix" in records(registry)["system"]["commands"]
+        run(SYSTEM / "uninstall.sh", "--component", "h848-audio", environment=environment)
         run(REPOSITORY / "uninstall.sh", "--module", "system", environment=environment)
 
         copied = root / "copied-system"
         shutil.copytree(SYSTEM, copied, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-        run(copied / "setup.sh", "--component", "update", environment=environment)
-        portable = home / ".local/state/shell-scripts/portable/system.json"
-        assert set(json.loads(portable.read_text(encoding="utf-8"))["commands"]) == {"update-system"}
-        original_update = update.read_bytes()
-        update.write_bytes(original_update + b"# local edit\n")
         run(copied / "setup.sh", "--component", "amd-gaming", environment=environment)
-        assert update.read_bytes() == original_update + b"# local edit\n"
-        update.write_bytes(original_update)
-        run(copied / "uninstall.sh", "--component", "update", environment=environment)
-        assert not (binary / "update-system").exists()
-        assert (binary / "install-amd-gaming").exists()
+        portable = home / ".local/state/shell-scripts/portable/system.json"
+        assert set(json.loads(portable.read_text(encoding="utf-8"))["commands"]) == {"install-amd-gaming"}
+        run(copied / "setup.sh", "--component", "h848-audio", environment=environment)
         run(copied / "uninstall.sh", "--component", "amd-gaming", environment=environment)
+        assert (binary / "install-h848-audio-fix").exists()
+        run(copied / "uninstall.sh", "--component", "h848-audio", environment=environment)
         assert not portable.exists()
     print("Component lifecycle tests passed")
 

@@ -1,0 +1,46 @@
+{
+  "display_name": "Canary file monitoring",
+  "category": "Monitoring",
+  "subcategory": "File events",
+  "description": "named fanotify sensors and systemd services",
+  "schema_version": 1,
+  "id": "canary",
+  "setup": "setup.sh",
+  "documentation": "README.md",
+  "commands": {
+    "fs-tracker": "tracker/app/main.c",
+    "canary-control": "scripts/canary-control",
+    "canary-configure": "scripts/canary_workflow.sh",
+    "canary-status": "scripts/canary_workflow.sh",
+    "canary-start": "scripts/canary_workflow.sh",
+    "canary-stop": "scripts/canary_workflow.sh",
+    "canary-remove": "scripts/canary_workflow.sh",
+    "canary-remove-all": "scripts/canary_workflow.sh",
+    "canary_state.py": "scripts/canary_state.py",
+    "canary_lifecycle.py": "scripts/canary_lifecycle.py"
+  },
+  "non_executable_commands": [
+    "canary_state.py",
+    "canary_lifecycle.py"
+  ],
+  "examples": [
+    "configuration/fs-tracker.cfg.example"
+  ],
+  "cron_templates": [],
+  "runtime_configs": {
+    "system": [
+      "etc/fs-tracker",
+      "var/lib/shell-scripts/canary"
+    ]
+  },
+  "build_commands": {
+    "fs-tracker": "scripts/build-tracker.sh"
+  },
+  "pre_remove": {
+    "command": "canary-remove-all",
+    "args": ["--yes"]
+  },
+  "scopes": [
+    "system"
+  ]
+}

@@ -1,10 +1,10 @@
 # Overview
 
-Root files are `README.md`, `setup.sh`, `uninstall.sh`, `AGENTS.md`, and repository metadata. Operational modules live under `src/` and own their setup entry point, scripts, configuration examples, tests, cron templates, and README. Root setup delegates to those entry points; `src/installation/` manages command deployment and the JSON registry.
+The repository root provides the shared setup and uninstall interface. `src/installation/` owns the catalog, registry, transactions, and menus. Independent modules live in `src/modules/<concern>/<module>/`, each with its own manifest, setup, uninstall, README, commands, and tests.
 
-- `src/backup/`: private, verified home snapshots and a staged remote copy with rollback.
-- `src/network/`: managed packet capture rotation.
-- `src/system/`: Ubuntu and H848 device setup.
-- `src/privacy/`: user-only scheduled cleanup by default, optional root cleanup for host logs.
+- `data-privacy/`: backup snapshots and privacy retention.
+- `monitoring/`: network capture and canary file events.
+- `system-utilities/`: workstation setup, with separately managed AMD gaming and H848 audio components.
+- `server-services/`: manual APT updates, unattended upgrades, and VPS gateway services.
 
-Cron templates are commented examples. The privacy module generates its own schedules when configured.
+The wrapper may discover and deploy a module; a copied module must still install and uninstall on its own. Registries live outside Git and record owned files. See `REPOSITORY_SPRING_CLEANING.md` for architecture and migration rules.

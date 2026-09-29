@@ -14,7 +14,7 @@ from manage import paths, read_registry
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 DESCRIPTIONS = {
-    name: f"{definition['display_name']} [{definition['category']}] — {definition['description']}"
+    name: f"{definition['display_name']} [{definition['category']} / {definition['subcategory']}] — {definition['description']}"
     for name, definition in MODULES.items()
 }
 

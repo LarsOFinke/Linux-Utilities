@@ -75,7 +75,36 @@ def read_registry(path: Path, scope: str, bin_dir: Path) -> dict:
         raise RuntimeError(f"Registry uses a different command directory: {path}")
     if not isinstance(data.get("modules"), dict):
         raise RuntimeError(f"Registry has no valid module map: {path}")
+    migrate_legacy_system_update(data)
     return data
+
+
+def migrate_legacy_system_update(registry: dict) -> None:
+    """Preserve ownership when the old system:update component becomes a module."""
+    modules = registry["modules"]
+    old = modules.get("system")
+    if not old or "update-system" not in old["commands"]:
+        return
+    if "system-update" in modules:
+        raise RuntimeError("Both system:update and system-update claim update-system in the registry")
+    update = copy.deepcopy(old)
+    update["commands"] = {"update-system": old["commands"].pop("update-system")}
+    update["commands"]["update-system"]["source"] = str(
+        REPOSITORY / MODULES["system-update"]["commands"]["update-system"])
+    update["setup_script"] = str(REPOSITORY / MODULES["system-update"]["setup"])
+    update["documentation"] = str(REPOSITORY / MODULES["system-update"]["documentation"])
+    update["config_examples"] = []
+    update["cron_templates"] = []
+    update["managed_cron_files"] = {}
+    update["runtime_configs"] = []
+    update["schedules"] = []
+    update["pre_remove"] = None
+    update.pop("components", None)
+    modules["system-update"] = update
+    if old["commands"]:
+        old["components"] = sorted(installed_components("system", {**old, "components": None}))
+    else:
+        del modules["system"]
 
 
 def registry_inventory(registry: dict) -> dict[str, dict]:

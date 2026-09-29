@@ -53,7 +53,7 @@ def load_catalog() -> dict:
             raise SystemExit(f"Cannot read module manifest {manifest_path}: {error}") from error
         if not isinstance(source, dict) or source.get("schema_version") != 1 or source.get("id") != module:
             raise SystemExit(f"Invalid module manifest: {manifest_path}")
-        for field in ("display_name", "category", "description"):
+        for field in ("display_name", "category", "subcategory", "description"):
             value = source.get(field)
             if not isinstance(value, str) or not value.strip() or len(value) > 120:
                 raise SystemExit(f"Invalid {module}.{field} in {manifest_path}")
@@ -65,7 +65,7 @@ def load_catalog() -> dict:
         def source_path(value: str, label: str) -> str:
             return str(manifest_relative.parent / relative_path(value, label))
 
-        definition = {key: source[key] for key in ("display_name", "category", "description")}
+        definition = {key: source[key] for key in ("display_name", "category", "subcategory", "description")}
         definition["scopes"] = supported_scopes
         definition["system_only"] = "user" not in supported_scopes
         definition["manifest"] = str(manifest_relative)
