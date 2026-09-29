@@ -3,6 +3,7 @@ server {
     listen 80;
     listen [::]:80;
     server_name python.example.org;
+    access_log /var/log/nginx/access.log vps_gateway;
 
     limit_req zone=gateway_per_ip burst=60 nodelay;
     limit_req zone=gateway_per_site burst=100;

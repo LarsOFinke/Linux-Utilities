@@ -63,6 +63,21 @@ bin_dir="$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin"
 [[ -x "$site_command" ]]
 [[ ! -e "$MOCK_CALLS" ]]
 
+PYTHONPATH="$repository/src/modules/server-services/vps-gateway/scripts" python3 - <<'PY'
+from pathlib import Path
+from vps_site_model import BLUEPRINTS
+
+module = Path('src/modules/server-services/vps-gateway')
+core = (module / 'configuration/core/http.conf.example').read_text()
+assert 'log_format vps_gateway' in core
+assert '$request_uri' not in core and '$http_referer' not in core
+for blueprint in BLUEPRINTS:
+    site = (module / f'configuration/blueprints/{blueprint}.conf.example').read_text()
+    assert 'access_log /var/log/nginx/access.log vps_gateway;' in site
+spa = (module / 'configuration/blueprints/spa.conf.example').read_text()
+assert spa.index('location ~ /\\.') < spa.index('location ~* \\.')
+PY
+
 "$bin_dir/vps-gateway-site-list" | rg -q '^java-spring$'
 "$bin_dir/vps-gateway-site-render" java-spring --host service.example.org --port 18443 --output "$test_dir/site.conf"
 rg -q 'server_name service.example.org;' "$test_dir/site.conf"
@@ -99,7 +114,13 @@ fi
 
 gateway_root="$SHELL_SCRIPTS_INSTALL_ROOT/etc/nginx"
 mkdir -p "$gateway_root/sites-available" "$gateway_root/sites-enabled" "$gateway_root/conf.d" "$gateway_root/snippets"
-touch "$gateway_root/nginx.conf" "$gateway_root/sites-available/default"
+cat > "$gateway_root/nginx.conf" <<'NGINX'
+http {
+    include /etc/nginx/conf.d/*.conf;
+    include /etc/nginx/sites-enabled/*;
+}
+NGINX
+touch "$gateway_root/sites-available/default"
 ln -s ../sites-available/default "$gateway_root/sites-enabled/default"
 printf '2\nservice.example.org\n18443\n18443\ny\ny\n' | "$bin_dir/vps-gateway-init"
 [[ -f "$gateway_root/conf.d/vps-gateway.conf" ]]
@@ -128,10 +149,38 @@ fi
 [[ ! -e "$gateway_root/sites-available/broken.example.org.conf" ]]
 [[ ! -e "$gateway_root/sites-enabled/broken.example.org.conf" ]]
 
+project_site="$test_dir/project-site.conf"
+cat > "$project_site" <<'NGINX'
+# Keep this project-specific setting unchanged.
+server {
+    listen 80;
+    server_name imported.example.org;
+    location / { return 204; }
+}
+NGINX
+printf '7\nimported.example.org\n%s\nn\ny\n' "$project_site" | "$bin_dir/vps-gateway-add"
+cmp "$project_site" "$gateway_root/sites-available/imported.example.org.conf"
+[[ -L "$gateway_root/sites-enabled/imported.example.org.conf" ]]
+
+if printf '7\nwrong.example.org\n%s\n' "$project_site" | "$bin_dir/vps-gateway-add" >/dev/null 2>&1; then
+    echo 'Imported config with a different hostname should be rejected' >&2
+    exit 1
+fi
+[[ ! -e "$gateway_root/sites-available/wrong.example.org.conf" ]]
+
+sed 's/imported.example.org/failed.example.org/' "$project_site" > "$test_dir/failed-site.conf"
+if printf '7\nfailed.example.org\n%s\nn\ny\n' "$test_dir/failed-site.conf" | MOCK_FAIL_STAGED=1 "$bin_dir/vps-gateway-add" >/dev/null 2>&1; then
+    echo 'Failed imported config validation should roll back' >&2
+    exit 1
+fi
+[[ ! -e "$gateway_root/sites-available/failed.example.org.conf" ]]
+[[ ! -e "$gateway_root/sites-enabled/failed.example.org.conf" ]]
+
 rollback_root="$test_dir/rollback-root"
 rollback_nginx="$rollback_root/etc/nginx"
 mkdir -p "$rollback_nginx/sites-available" "$rollback_nginx/sites-enabled" "$rollback_nginx/conf.d" "$rollback_nginx/snippets"
-touch "$rollback_nginx/nginx.conf" "$rollback_nginx/sites-available/default"
+cp "$gateway_root/nginx.conf" "$rollback_nginx/nginx.conf"
+touch "$rollback_nginx/sites-available/default"
 ln -s ../sites-available/default "$rollback_nginx/sites-enabled/default"
 if printf '1\nrollback.example.org\n18081\n18081\nn\ny\n' | SHELL_SCRIPTS_INSTALL_ROOT="$rollback_root" MOCK_FAIL_STAGED=1 "$site_command" init >/dev/null 2>&1; then
     echo 'Invalid staged NGINX configuration should fail setup' >&2
@@ -140,6 +189,27 @@ fi
 [[ -L "$rollback_nginx/sites-enabled/default" ]]
 [[ ! -e "$rollback_nginx/conf.d/vps-gateway.conf" ]]
 [[ ! -e "$rollback_nginx/sites-available/rollback.example.org.conf" ]]
+
+first_root="$test_dir/first-root"
+first_nginx="$first_root/etc/nginx"
+mkdir -p "$first_nginx/sites-available" "$first_nginx/sites-enabled" "$first_nginx/conf.d" "$first_nginx/snippets"
+cp "$gateway_root/nginx.conf" "$first_nginx/nginx.conf"
+touch "$first_nginx/sites-available/default"
+ln -s ../sites-available/default "$first_nginx/sites-enabled/default"
+sed 's/imported.example.org/first.example.org/' "$project_site" > "$test_dir/first-site.conf"
+printf '7\nfirst.example.org\n%s\nn\ny\n' "$test_dir/first-site.conf" | SHELL_SCRIPTS_INSTALL_ROOT="$first_root" "$bin_dir/vps-gateway-init"
+cmp "$test_dir/first-site.conf" "$first_nginx/sites-available/first.example.org.conf"
+
+missing_includes="$test_dir/missing-includes"
+missing_nginx="$missing_includes/etc/nginx"
+mkdir -p "$missing_nginx/sites-available" "$missing_nginx/sites-enabled" "$missing_nginx/conf.d" "$missing_nginx/snippets"
+touch "$missing_nginx/nginx.conf" "$missing_nginx/sites-available/default"
+ln -s ../sites-available/default "$missing_nginx/sites-enabled/default"
+if printf '5\nnoinclude.example.org\n/srv/www/noinclude\nn\ny\n' | SHELL_SCRIPTS_INSTALL_ROOT="$missing_includes" "$bin_dir/vps-gateway-init" >/dev/null 2>&1; then
+    echo 'Missing NGINX includes should stop first-run setup' >&2
+    exit 1
+fi
+[[ ! -e "$missing_nginx/conf.d/vps-gateway.conf" ]]
 
 printf '# local edit\n' >> "$command"
 if "$repository/uninstall.sh" --system --module vps-gateway >/dev/null 2>&1; then

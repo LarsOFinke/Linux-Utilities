@@ -4,12 +4,16 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
 
 from vps_site_model import BLUEPRINTS, document_root, hostname, render_site
 from vps_site_ports import acknowledge_backend_port, ask_backend_port
+
+IMPORT_CHOICE = "import-existing"
+
 
 def ask(label: str, validator) -> str | int:
     while True:
@@ -27,6 +31,39 @@ def create_file(path: Path, contents: str, created: list[Path]) -> None:
         stream.write(contents)
 
 
+def site_contents(choice: str, host: str, backend_port: int | None, root: str | None,
+                  site_templates: dict[str, str], source: Path | None) -> str:
+    if source is None:
+        return render_site(site_templates, choice, host, backend_port, root)
+    if source.is_symlink() or not source.is_file():
+        raise RuntimeError(f"project site config must be a regular file: {source}")
+    contents = source.read_text(encoding="utf-8")
+    active_lines = "\n".join(line.split("#", 1)[0] for line in contents.splitlines())
+    names = re.findall(r"\bserver_name\s+([^;]+);", active_lines)
+    if not any(host in declared.lower().split() for declared in names):
+        raise RuntimeError(f"project site config does not declare server_name {host}: {source}")
+    return contents
+
+
+def ask_site_source() -> Path:
+    while True:
+        value = input("Absolute path to the project's NGINX site config: ").strip()
+        source = Path(value)
+        if source.is_absolute() and source.is_file() and not source.is_symlink():
+            return source
+        print("Enter an absolute path to a regular config file (not a symlink).", file=sys.stderr)
+
+
+def require_distribution_includes(nginx_conf: Path) -> None:
+    contents = nginx_conf.read_text(encoding="utf-8")
+    for pattern, label in (
+        (r"^\s*include\s+/etc/nginx/conf\.d/\*\.conf\s*;", "conf.d/*.conf"),
+        (r"^\s*include\s+/etc/nginx/sites-enabled/\*\s*;", "sites-enabled/*"),
+    ):
+        if not re.search(pattern, contents, re.MULTILINE):
+            raise RuntimeError(f"nginx.conf does not include {label}; integrate the gateway manually")
+
+
 def init(site_templates: dict[str, str], core: dict[str, str]) -> int:
     install_root = Path(os.environ.get("SHELL_SCRIPTS_INSTALL_ROOT", "/")).resolve()
     if install_root == Path("/") and os.geteuid() != 0:
@@ -34,14 +71,17 @@ def init(site_templates: dict[str, str], core: dict[str, str]) -> int:
     print("First VPS gateway site")
     for number, name in enumerate(BLUEPRINTS, 1):
         print(f"  {number}. {name}")
-    choice = ask("Blueprint number", lambda value: selected_blueprint(value))
+    print(f"  {len(BLUEPRINTS) + 1}. {IMPORT_CHOICE} (copy a project site config)")
+    choice = ask("Site option number", selected_blueprint)
     host = ask("Public DNS hostname", hostname)
     backend_port = None
     root = None
-    if BLUEPRINTS[choice][1] is not None:
+    source = ask_site_source() if choice == IMPORT_CHOICE else None
+    if choice != IMPORT_CHOICE and BLUEPRINTS[choice][1] is not None:
         backend_port = ask_backend_port(install_root / "etc/nginx/sites-available")
-    else:
+    elif choice != IMPORT_CHOICE:
         root = ask("Absolute document root", document_root)
+    contents = site_contents(choice, host, backend_port, root, site_templates, source)
     site_name = f"{host}.conf"
     nginx_dir = install_root / "etc/nginx"
     available = nginx_dir / "sites-available"
@@ -54,6 +94,8 @@ def init(site_templates: dict[str, str], core: dict[str, str]) -> int:
 
     print(f"\nWill install NGINX/Certbot and activate {host} from {choice}.")
     print(f"Site: {site_path}")
+    if source is not None:
+        print(f"Copy unchanged from: {source}")
     print(f"Core: {core_path}")
     print("The packaged default site will be disabled and unknown hosts rejected.")
     if backend_port is not None and not acknowledge_backend_port(backend_port):
@@ -67,6 +109,7 @@ def init(site_templates: dict[str, str], core: dict[str, str]) -> int:
     subprocess.run([str(Path(__file__).with_name("vps-gateway")), "configure"], check=True)
     if not (nginx_dir / "nginx.conf").is_file():
         raise RuntimeError(f"NGINX configuration is missing: {nginx_dir / 'nginx.conf'}")
+    require_distribution_includes(nginx_dir / "nginx.conf")
     for directory in (available, enabled, nginx_dir / "conf.d", nginx_dir / "snippets"):
         if not directory.is_dir():
             raise RuntimeError(f"NGINX directory is missing: {directory}")
@@ -94,7 +137,7 @@ def init(site_templates: dict[str, str], core: dict[str, str]) -> int:
         create_file(core_path, core["http"], created)
         create_file(headers_path, core["proxy-headers"], created)
         create_file(catchall_path, core["catch-all"], created)
-        create_file(site_path, render_site(site_templates, choice, host, backend_port, root), created)
+        create_file(site_path, contents, created)
         if default_target is not None:
             default_link.unlink()
             default_disabled = True
@@ -126,8 +169,9 @@ def init(site_templates: dict[str, str], core: dict[str, str]) -> int:
 
 
 def selected_blueprint(value: str) -> str:
-    if value.isascii() and value.isdecimal() and len(value) == 1 and 1 <= int(value) <= len(BLUEPRINTS):
-        return list(BLUEPRINTS)[int(value) - 1]
-    if value in BLUEPRINTS:
+    choices = [*BLUEPRINTS, IMPORT_CHOICE]
+    if value.isascii() and value.isdecimal() and len(value) == 1 and 1 <= int(value) <= len(choices):
+        return choices[int(value) - 1]
+    if value in choices:
         return value
-    raise argparse.ArgumentTypeError("choose a listed number or blueprint name")
+    raise argparse.ArgumentTypeError("choose a listed number or site option name")

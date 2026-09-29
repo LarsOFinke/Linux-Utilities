@@ -5,6 +5,7 @@ server {
     listen 80 default_server;
     listen [::]:80 default_server;
     server_name _;
+    access_log /var/log/nginx/access.log vps_gateway;
     return 444;
 }
 
@@ -12,5 +13,6 @@ server {
     listen 443 ssl default_server;
     listen [::]:443 ssl default_server;
     server_name _;
+    access_log /var/log/nginx/access.log vps_gateway;
     ssl_reject_handshake on;
 }

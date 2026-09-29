@@ -105,7 +105,11 @@ def main() -> None:
         nginx_dir = vps_root / "etc/nginx"
         for name in ("sites-available", "sites-enabled", "conf.d", "snippets"):
             (nginx_dir / name).mkdir(parents=True)
-        (nginx_dir / "nginx.conf").touch()
+        (nginx_dir / "nginx.conf").write_text(
+            "http {\n    include /etc/nginx/conf.d/*.conf;\n"
+            "    include /etc/nginx/sites-enabled/*;\n}\n",
+            encoding="utf-8",
+        )
         (nginx_dir / "sites-available/default").touch()
         (nginx_dir / "sites-enabled/default").symlink_to("../sites-available/default")
         for name, script in {

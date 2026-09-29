@@ -8,8 +8,15 @@ import subprocess
 import sys
 from pathlib import Path
 
-from vps_site_init import ask, create_file, selected_blueprint
-from vps_site_model import BLUEPRINTS, document_root, hostname, render_site
+from vps_site_init import (
+    IMPORT_CHOICE,
+    ask,
+    ask_site_source,
+    create_file,
+    selected_blueprint,
+    site_contents,
+)
+from vps_site_model import BLUEPRINTS, document_root, hostname
 from vps_site_ports import acknowledge_backend_port, ask_backend_port, configured_ports
 
 
@@ -33,10 +40,21 @@ def add(site_templates: dict[str, str]) -> int:
     print("Add a VPS gateway site")
     for number, name in enumerate(BLUEPRINTS, 1):
         print(f"  {number}. {name}")
-    choice = ask("Blueprint number", selected_blueprint)
+    print(f"  {len(BLUEPRINTS) + 1}. {IMPORT_CHOICE} (copy a project site config)")
+    choice = ask("Site option number", selected_blueprint)
     host = ask("Public DNS hostname", hostname)
-    backend_port = ask_backend_port(available) if BLUEPRINTS[choice][1] is not None else None
-    root = ask("Absolute document root", document_root) if backend_port is None else None
+    source = ask_site_source() if choice == IMPORT_CHOICE else None
+    backend_port = (
+        ask_backend_port(available)
+        if choice != IMPORT_CHOICE and BLUEPRINTS[choice][1] is not None
+        else None
+    )
+    root = (
+        ask("Absolute document root", document_root)
+        if choice != IMPORT_CHOICE and backend_port is None
+        else None
+    )
+    contents = site_contents(choice, host, backend_port, root, site_templates, source)
     site_name = f"{host}.conf"
     site_path = available / site_name
     link = enabled / site_name
@@ -55,6 +73,8 @@ def add(site_templates: dict[str, str]) -> int:
     print(f"\nWill activate {host} from {choice}.")
     print(f"Site: {site_path}")
     print(f"Enabled link: {link}")
+    if source is not None:
+        print(f"Copy unchanged from: {source}")
     if backend_port is not None and not acknowledge_backend_port(backend_port):
         print("No changes made.")
         return 0
@@ -67,7 +87,7 @@ def add(site_templates: dict[str, str]) -> int:
     try:
         if backend_port is not None and backend_port in configured_ports(available):
             raise RuntimeError(f"port {backend_port} was claimed by another gateway site; retry with another port")
-        create_file(site_path, render_site(site_templates, choice, host, backend_port, root), created)
+        create_file(site_path, contents, created)
         link.symlink_to(Path("../sites-available") / site_name)
         created.append(link)
         subprocess.run(["nginx", "-t"], check=True)

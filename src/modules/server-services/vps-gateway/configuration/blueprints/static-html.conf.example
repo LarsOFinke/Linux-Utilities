@@ -3,6 +3,7 @@ server {
     listen 80;
     listen [::]:80;
     server_name static.example.org;
+    access_log /var/log/nginx/access.log vps_gateway;
     root /srv/www/static.example.org;
     index index.html;
 

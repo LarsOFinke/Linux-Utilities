@@ -58,7 +58,7 @@ The previous multi-command entry points (`privacy-cleanup`, `ubuntu-updates`, `c
 
 `canary` is system-scope because its named services use systemd and fanotify privileges. Setup compiles and installs the sensor but does not create or start a service. See the [canary guide](src/modules/monitoring/canary/README.md) for configuration and safe removal.
 
-`vps-gateway` is system-scope. Interactive setup offers a first-run wizard to choose a blueprint, fill in its host and port or document root, and activate the core, catch-all, and first site. Run `sudo vps-gateway-add` to add later hostnames through the same kind of prompts. `sudo vps-gateway-configure` remains package-only. See the [VPS gateway guide](src/modules/server-services/vps-gateway/README.md).
+`vps-gateway` is system-scope. Interactive setup offers a first-run wizard to choose a blueprint or copy an existing project NGINX site config, then activate the core, catch-all, and first site. Run `sudo vps-gateway-add` to add later hostnames through the same options. `sudo vps-gateway-configure` remains package-only. See the [VPS gateway guide](src/modules/server-services/vps-gateway/README.md).
 
 ## Layout
 

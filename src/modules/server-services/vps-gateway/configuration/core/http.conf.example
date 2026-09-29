@@ -2,6 +2,9 @@
 # Shared policy for VPS gateway sites. Each site opts into the limit zones.
 server_tokens off;
 add_header X-Content-Type-Options "nosniff" always;
+# Generated sites select this format so query strings stay out of access logs.
+log_format vps_gateway '$remote_addr - $remote_user [$time_local] '
+                       '"$request_method $uri $server_protocol" $status $body_bytes_sent';
 limit_req_zone $binary_remote_addr zone=gateway_per_ip:10m rate=30r/s;
 limit_req_zone $server_name zone=gateway_per_site:1m rate=100r/s;
 limit_conn_zone $binary_remote_addr zone=gateway_conn_per_ip:10m;
