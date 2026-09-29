@@ -1,6 +1,6 @@
 # Linux-Utilities
 
-Independent Linux utilities organized by concern under `src/modules/`. The root setup is an interactive module selector that installs selected modules as one batch. Each module also has its own setup and uninstall scripts. The stable module IDs are used in commands and registries; display names and categories help people find the right tool.
+Independent Linux utilities organized by concern under `src/modules/`. The root setup asks for category, module, then sub-module when needed, and installs selected modules as one batch. Each module also has its own setup and uninstall scripts. The stable module IDs are used in commands and registries; display names and categories help people find the right tool.
 
 Setup and uninstall require Python 3.9 or newer. Runtime requirements are listed in each module README.
 
@@ -9,6 +9,8 @@ Setup and uninstall require Python 3.9 or newer. Runtime requirements are listed
 ```bash
 ./setup.sh                         # interactive user install
 ./setup.sh --module backup --module privacy
+./setup.sh --ssh my-server --module network
+./setup.sh --ssh my-server --component system:amd-gaming
 ./setup.sh --module system-update
 ./setup.sh --component system:h848-audio
 sudo ./setup.sh --system --all
@@ -18,6 +20,8 @@ src/modules/data-privacy/privacy/uninstall.sh          # direct removal of one m
 ./uninstall.sh                     # interactive module selection
 ./uninstall.sh --module privacy
 ./uninstall.sh --module ubuntu-updates  # finds its system registry entry
+./uninstall.sh --ssh my-server --list
+./uninstall.sh --ssh my-server --module network
 ./uninstall.sh --module system-update
 ```
 
@@ -25,7 +29,9 @@ You can run any `src/modules/<category>/<module>/setup.sh` or `uninstall.sh` dir
 
 The root selector installs all selected modules in one transaction for one scope. The `ubuntu-updates`, `canary`, and `vps-gateway` modules require system scope; combine them with other modules using `--system`, or install them separately. An install failure restores the previously installed files and registry. Reinstall removes obsolete managed commands and cron templates when their installed copies are unchanged; locally edited copies block the reinstall.
 
-The `system` module offers independently managed `system:amd-gaming` and `system:h848-audio` components. Manual package updates are the separate `system-update` module under Server services; legacy `system:update` registry entries migrate when read. In the interactive menu, select `system` first, then select one or more sub-modules. Setup shows sub-modules not yet installed; uninstall shows only those recorded as installed. Use repeatable `--component MODULE:NAME` options for scripted selection. Explicit `--module system` selects both. Adding or removing one component leaves installed siblings registered. `--list` reflects the available setup or uninstall selections. Installing these commands does not run the utilities.
+For a small SSH deployment, pass `--ssh TARGET` with the same module or component selection options. The wrapper sends each selected module directory to the target and runs that module's portable setup there. Successful deployments are recorded under `remote_deployments` in the local user registry; `./uninstall.sh --ssh TARGET --list` also scans the target's portable registry and flags differences. `--module` or `--component` removes a selection using the target's own hash checks. A failed remote operation leaves the local deployment record in place. SSH deployment needs Git and SSH locally and Python 3.9 or newer on the target. Remote system installs require noninteractive sudo access on the target; modules are deployed one at a time, so a multi-module SSH selection is not one remote transaction.
+
+The `system` module offers independently managed `system:amd-gaming` and `system:h848-audio` components. Manual package updates are the separate `system-update` module under Server services; legacy `system:update` registry entries migrate when read. In the interactive menu, select System utilities, then `system`, then one or more sub-modules. Setup shows sub-modules not yet installed; uninstall shows only those recorded as installed. Use repeatable `--component MODULE:NAME` options for scripted selection. Explicit `--module system` selects both. Adding or removing one component leaves installed siblings registered. `--list` reflects the available setup or uninstall selections. Installing these commands does not run the utilities.
 
 The default installation copies selected commands to `~/.local/bin` and records them in `~/.local/state/shell-scripts/registry.json`. The existing `shell-scripts` state paths and markers stay in place so installed modules remain manageable after the project rename. If needed, setup adds `~/.local/bin` to `~/.profile`; open a new shell or source that file before calling commands by name. The registry records command paths and hashes, source files, configuration examples, cron templates, and runtime policy paths. Root uninstall reads both user and system registries, labels their scopes, and checks recorded command files against their hashes. It may ask for sudo to read the private system registry or remove a system module. Uninstall removes only registered commands, refuses locally modified files unless `--force` is supplied, and removes managed privacy schedules. It preserves privacy policy files unless `--purge-config` is supplied.
 
@@ -93,4 +99,5 @@ python3 src/installation/tests/transaction_test.py
 python3 src/installation/tests/portable_modules_test.py
 python3 src/installation/tests/component_test.py
 python3 src/installation/tests/registry_routing_test.py
+python3 src/installation/tests/remote_deploy_test.py
 ```

@@ -37,7 +37,7 @@ def interactive_uninstall(environment: dict[str, str]) -> None:
                                    env=environment, stdin=slave, stdout=slave, stderr=slave)
         os.close(slave)
         slave = -1
-        os.write(master, b"1\n")
+        os.write(master, b"1\n1\n")
         assert process.wait(timeout=20) == 0
     finally:
         if slave >= 0:

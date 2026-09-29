@@ -10,8 +10,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-from catalog import MODULES, choose_modules
+from catalog import MODULES, choose_categorized_modules, choose_modules
 from manage import paths, read_registry, registry_inventory
+from remote_deploy import cached, deploy, scan_remote, valid_target
 
 MANAGER = Path(__file__).with_name("manage.py")
 
@@ -29,6 +30,26 @@ def inventory(system: bool) -> dict[str, dict]:
     bin_dir, registry_path, _ = paths(system)
     registry = read_registry(registry_path, "system" if system else "user", bin_dir)
     return registry_inventory(registry)
+
+
+def remote_inventory(target: str, system: bool) -> dict[str, dict]:
+    scope = "system" if system else "user"
+    target = valid_target(target)
+    recorded = cached(target, scope)
+    scanned = scan_remote(target, scope)
+    result = {}
+    for module, entry in scanned.items():
+        issues = list(entry["issues"])
+        if module not in recorded:
+            issues.append("not in local deployment registry")
+        elif recorded[module]["components"] != entry["components"]:
+            issues.append("local and remote component records differ")
+        result[module] = {"components": entry["components"], "issues": issues}
+    for module, entry in recorded.items():
+        if module not in result:
+            result[module] = {"components": entry["components"],
+                              "issues": ["missing from remote portable registry"]}
+    return result
 
 
 def scope_for(module: str, inventories: dict[str, dict], system_only: bool) -> str:
@@ -62,7 +83,10 @@ def select_interactively(inventories: dict[str, dict]) -> dict[str, dict[str, se
             descriptions[name] = f"{len(issues)} installed file issue(s); review before removal"
         elif module in MODULES:
             descriptions[name] = MODULES[module]["description"]
-    selected = choose_modules([], False, names, descriptions, heading="Installed modules")
+    selected = choose_categorized_modules(
+        names, descriptions,
+        {name: MODULES[module]["category"] if module in MODULES else "Other"
+         for name, (_, module) in zip(names, choices)})
     result: dict[str, dict[str, set[str] | None]] = {scope: {} for scope in inventories}
     lookup = dict(zip(names, choices))
     for name in selected:
@@ -106,6 +130,9 @@ def remove(selection: dict[str, dict[str, set[str] | None]], args: argparse.Name
     for scope, modules in selection.items():
         if not modules:
             continue
+        if args.ssh:
+            deploy(args.ssh, modules, scope == "system", "uninstall", args.force)
+            continue
         command = [sys.executable, str(MANAGER), "uninstall"]
         if scope == "system":
             command.append("--system")
@@ -127,6 +154,7 @@ def remove(selection: dict[str, dict[str, set[str] | None]], args: argparse.Name
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--system", action="store_true", help="Show only system installations")
+    parser.add_argument("--ssh", metavar="TARGET", help="Remove modules from an SSH target")
     parser.add_argument("--module", action="append", default=[], help="Remove an installed module")
     parser.add_argument("--component", action="append", default=[], metavar="MODULE:NAME")
     parser.add_argument("--all", action="store_true", help="Remove all installed modules in selected scopes")
@@ -135,9 +163,9 @@ def main() -> int:
     parser.add_argument("--purge-config", action="store_true", help="Purge supported runtime configuration")
     args = parser.parse_args()
     if args.system:
-        inventories = {"system": inventory(True)}
+        inventories = {"system": remote_inventory(args.ssh, True) if args.ssh else inventory(True)}
     else:
-        user = inventory(False)
+        user = remote_inventory(args.ssh, False) if args.ssh else inventory(False)
         inventories = {"user": user}
         requested = [*args.module, *args.component]
         missing_user_module = any(module not in user for module in args.module)
@@ -147,16 +175,22 @@ def main() -> int:
             for spec in args.component
         )
         if args.list or args.all or not requested or missing_user_module or missing_user_component:
-            inventories["system"] = inventory(True)
+            inventories["system"] = remote_inventory(args.ssh, True) if args.ssh else inventory(True)
     if args.list:
-        for scope, entries in inventories.items():
-            for module, details in sorted(entries.items()):
-                print(f"{module} [{scope}]")
-                if details["components"] is not None:
-                    for component in details["components"]:
-                        print(f"  {module}:{component}")
-                for issue in details["issues"]:
-                    print(f"  warning: {issue}")
+        groups = sorted({MODULES[module]["category"] if module in MODULES else "Other"
+                         for entries in inventories.values() for module in entries})
+        for category in groups:
+            print(f"{category}:")
+            for scope, entries in inventories.items():
+                for module, details in sorted(entries.items()):
+                    if (MODULES[module]["category"] if module in MODULES else "Other") != category:
+                        continue
+                    print(f"  {module} [{scope}]")
+                    if details["components"] is not None:
+                        for component in details["components"]:
+                            print(f"    {module}:{component}")
+                    for issue in details["issues"]:
+                        print(f"    warning: {issue}")
         return 0
     if not any(inventories.values()):
         raise RuntimeError("No installed modules are recorded.")

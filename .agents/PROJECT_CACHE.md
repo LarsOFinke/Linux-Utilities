@@ -17,4 +17,6 @@ Read this compact map first, then the relevant module README. The root setup and
 
 Each module directory can be copied out and installed without the repository using its synchronized `portable_module.py`. Shared and portable registries are distinct. Both track installed command ownership; root uninstall checks the user and system shared registries and installed files. Generated state stays outside Git.
 
+The root wrapper also accepts `--ssh TARGET` for module and component setup/removal. It sends a portable module bundle, records successful remote deployments in the local user registry, and scans the target's portable state for selection and status. Remote removal still runs the module's portable hash checks. Network capture accepts named profiles plus port and IPv4 subnet filters; its module-owned capture registry records settings and checks whether the recorded PID is active.
+
 Use the validation commands in the root README and avoid live host operations when testing. See `REPOSITORY_SPRING_CLEANING.md` for the structure and future change checklist.

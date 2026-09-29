@@ -6,7 +6,7 @@
 
 Modules with manifest `components` also accept repeatable `--component MODULE:NAME`. Each component owns a disjoint set of commands. Selecting the full module includes every component; selecting a component adds it to any previously installed components. Removing a component keeps its siblings. Older full-module registry records remain compatible. A copied module accepts `--component NAME`.
 
-Interactive selection shows modules first, then a sub-module menu for a componentized module. Setup filters that submenu using the selected scope's registry so it offers only components still available to install. Uninstall reads both registries and offers only installed components, showing user or system scope. It checks recorded files on disk for missing or modified copies and shows warnings; removal still uses registry ownership and hash checks. System registry reads and removals use sudo when needed. Explicit `--module NAME` and `--all` still select full modules.
+Interactive selection shows categories, then modules in each chosen category, then a sub-module menu for a componentized module. Setup filters that submenu using the selected scope's registry so it offers only components still available to install. Uninstall reads both registries and offers only installed components, showing user or system scope. It checks recorded files on disk for missing or modified copies and shows warnings; removal still uses registry ownership and hash checks. System registry reads and removals use sudo when needed. Explicit `--module NAME` and `--all` still select full modules.
 
 The root [installation catalog](../../configuration/install.json) lists module manifests and shared destinations. Each module's `module.json` owns its commands, display name, category, subcategory, build step, examples, and removal hook. The [catalog guide](../../configuration/README.md) documents the fields. Module IDs remain stable for CLI and registry compatibility.
 
@@ -26,6 +26,9 @@ The `vps-gateway` module is system-only. Installation registers its host command
 
 When a module directory is copied elsewhere, its `setup.sh` and `uninstall.sh` use the bundled `portable_module.py` and a separate state file under `shell-scripts/portable/`. The canonical helper is `src/installation/portable_module.py`; run `python3 src/installation/sync_portable_helpers.py` after editing it. The portability test checks that copies stay byte-for-byte in sync. This local fallback has per-module rollback, while the root installer provides cross-module transactions and user PATH setup.
 
+`--ssh TARGET` uses `remote_deploy.py` to send each selected module as a temporary archive and run its portable setup or uninstall on the target. The local user registry stores successful remote deployments under `remote_deployments`, separate from locally owned commands. Remote selection and listing scan the target's portable state and report differences from the local record. Remote uninstall uses the target's hash checks. Remote installs are per module, and system scope requires noninteractive sudo on the target. The focused test uses a mock SSH command and two temporary home directories.
+
 The installation tests use temporary home and system prefixes: `bash src/installation/tests/setup_test.sh`, `python3 src/installation/tests/orchestrator_ui_test.py`, `python3 src/installation/tests/transaction_test.py`, and `python3 src/installation/tests/portable_modules_test.py`.
 Run `python3 src/installation/tests/component_test.py` for component lifecycle checks.
 Run `python3 src/installation/tests/registry_routing_test.py` for direct and root wrapper routing across both scopes.
+Run `python3 src/installation/tests/remote_deploy_test.py` for the SSH prototype and deployment record lifecycle.

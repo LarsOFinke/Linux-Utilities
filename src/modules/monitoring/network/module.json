@@ -8,8 +8,10 @@
   "setup": "setup.sh",
   "documentation": "README.md",
   "commands": {
-    "capture-traffic": "scripts/capture_traffic.sh"
+    "capture-traffic": "scripts/capture_traffic.sh",
+    "capture_registry.py": "scripts/capture_registry.py"
   },
+  "non_executable_commands": ["capture_registry.py"],
   "examples": [
     "configuration/capture.env.example"
   ],

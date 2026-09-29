@@ -31,7 +31,7 @@ def main() -> None:
             )
             os.close(slave)
             slave = -1
-            os.write(master, b"0\n1,4\n")
+            os.write(master, b"0\n1\n1,2\n")
             if process.wait(timeout=15) != 0:
                 raise AssertionError("Interactive root setup failed")
         finally:

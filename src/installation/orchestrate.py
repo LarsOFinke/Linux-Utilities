@@ -9,12 +9,13 @@ import subprocess
 import sys
 from pathlib import Path
 
-from catalog import MODULES, choose_targets, installed_components, selection_options
+from catalog import MODULES, choose_targets, installed_components
 from manage import paths, read_registry
+from remote_deploy import deploy, scan_remote
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 DESCRIPTIONS = {
-    name: f"{definition['display_name']} [{definition['category']} / {definition['subcategory']}] — {definition['description']}"
+    name: f"{definition['display_name']} [{definition['subcategory']}] — {definition['description']}"
     for name, definition in MODULES.items()
 }
 
@@ -22,6 +23,7 @@ DESCRIPTIONS = {
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--system", action="store_true", help="Install commands system-wide")
+    parser.add_argument("--ssh", metavar="TARGET", help="Install on an SSH target with portable module setup")
     parser.add_argument("--module", action="append", default=[], choices=sorted(MODULES))
     parser.add_argument("--component", action="append", default=[], metavar="MODULE:NAME",
                         help="Install one component of a module; repeatable")
@@ -37,18 +39,34 @@ def main() -> int:
         available = sorted(MODULES)
         available_components = None
         if (not args.module and not args.component and not args.all) or args.list:
-            bin_dir, registry_path, _ = paths(args.system)
-            registry = read_registry(registry_path, "system" if args.system else "user", bin_dir)
+            if args.ssh:
+                installed = scan_remote(args.ssh, "system" if args.system else "user")
+                installed_components_by_module = {
+                    module: set(entry.get("components") or []) for module, entry in installed.items()
+                }
+            else:
+                bin_dir, registry_path, _ = paths(args.system)
+                registry = read_registry(registry_path, "system" if args.system else "user", bin_dir)
+                installed_components_by_module = {
+                    module: installed_components(module, registry["modules"][module])
+                    for module in MODULES if module in registry["modules"] and MODULES[module]["components"]
+                }
             available_components = {
-                module: set(definition["components"]) -
-                (installed_components(module, registry["modules"][module])
-                 if module in registry["modules"] else set())
+                module: set(definition["components"]) - installed_components_by_module.get(module, set())
                 for module, definition in MODULES.items() if definition["components"]
             }
             available = [module for module in available if not MODULES[module]["components"]
                          or available_components[module]]
         if args.list:
-            print("\n".join(selection_options(available, available_components)))
+            for category in sorted({MODULES[module]["category"] for module in available}):
+                print(f"{category}:")
+                for module in available:
+                    if MODULES[module]["category"] != category:
+                        continue
+                    print(f"  {module} — {MODULES[module]['subcategory']}")
+                    for component in MODULES[module]["components"]:
+                        if available_components is None or component in available_components[module]:
+                            print(f"    {module}:{component}")
             return 0
         if not args.module and not args.component and not args.all:
             print(f"Linux-Utilities setup — {'system-wide' if args.system else 'current user'}")
@@ -60,6 +78,9 @@ def main() -> int:
             raise RuntimeError("Selected modules require different install scopes; use --system or select each scope separately.")
         print(f"Selected: {', '.join(module if names is None else ', '.join(f'{module}:{name}' for name in sorted(names)) for module, names in selection.items())}", flush=True)
         system = args.system or bool(system_only)
+        if args.ssh:
+            deploy(args.ssh, selection, system)
+            return 0
         command = [sys.executable, str(REPOSITORY / "src/installation/manage.py"), "install"]
         if system:
             command.append("--system")

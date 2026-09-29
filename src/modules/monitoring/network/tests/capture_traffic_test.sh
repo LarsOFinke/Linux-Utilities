@@ -4,9 +4,11 @@ set -Eeuo pipefail
 project_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../../../.." && pwd)
 test_dir=$(mktemp -d)
 managed_pid=
+other_pid=
 unrelated_pid=
 cleanup() {
     [[ -z "$managed_pid" ]] || kill "$managed_pid" 2>/dev/null || true
+    [[ -z "$other_pid" ]] || kill "$other_pid" 2>/dev/null || true
     [[ -z "$unrelated_pid" ]] || kill "$unrelated_pid" 2>/dev/null || true
     rm -rf -- "$test_dir"
 }
@@ -15,6 +17,7 @@ trap cleanup EXIT
 mkdir -p "$test_dir/bin" "$test_dir/archives"
 cat >"$test_dir/bin/tcpdump" <<'MOCK_TCPDUMP'
 #!/usr/bin/env bash
+printf '%s\n' "$@" >"$MOCK_TCPDUMP_ARGS"
 output=
 while (( $# > 0 )); do
     if [[ "$1" == -w ]]; then
@@ -37,12 +40,43 @@ export TCPDUMP_INTERFACE=mock0
 export TCPDUMP_FILE="$test_dir/traffic.pcap"
 export TCPDUMP_PID_FILE="$test_dir/traffic.pid"
 export TCPDUMP_BACKUP_DIR="$test_dir/archives"
+export MOCK_TCPDUMP_ARGS="$test_dir/tcpdump.args"
+export TCPDUMP_REGISTRY="$test_dir/network-capture.json"
 script="$project_root/src/modules/monitoring/network/scripts/capture_traffic.sh"
 
 "$script"
 first_pid=$(cat "$TCPDUMP_PID_FILE")
 [[ "$(cat "$TCPDUMP_FILE")" == 'mock packets' ]]
-"$script"
+if "$script" --port 70000 >/dev/null 2>&1; then
+    echo 'Expected invalid port rejection' >&2
+    exit 1
+fi
+[[ "$(cat "$TCPDUMP_PID_FILE")" == "$first_pid" ]]
+if "$script" --subnet 999.0.0.0/24 >/dev/null 2>&1; then
+    echo 'Expected invalid subnet rejection' >&2
+    exit 1
+fi
+[[ "$(cat "$TCPDUMP_PID_FILE")" == "$first_pid" ]]
+"$script" --port 53 --port 443 --subnet 10.0.0.0/8
+printf '%s\n' -i mock0 -w "$TCPDUMP_FILE" '(' port 53 or port 443 ')' and '(' net 10.0.0.0/8 ')' >"$test_dir/expected.args"
+cmp "$test_dir/expected.args" "$MOCK_TCPDUMP_ARGS"
+"$script" --list >"$test_dir/listing"
+rg -q 'default \[active\].*ports=53,443.*subnets=10.0.0.0/8' "$test_dir/listing"
+TCPDUMP_FILE="$test_dir/other.pcap" TCPDUMP_PID_FILE="$test_dir/other.pid" \
+    "$script" --name other --all-ports --subnet 192.168.0.0/16
+other_pid=$(cat "$test_dir/other.pid")
+"$script" --list >"$test_dir/listing"
+rg -q 'other \[active\].*ports=all.*subnets=192.168.0.0/16' "$test_dir/listing"
+"$script" --name other --stop
+[[ ! -e "$test_dir/other.pid" ]]
+wait "$other_pid" 2>/dev/null || true
+other_pid=
+"$script" --list >"$test_dir/listing"
+rg -q 'other \[inactive\]' "$test_dir/listing"
+if "$script" --name collision >/dev/null 2>&1; then
+    echo 'Expected capture file ownership conflict' >&2
+    exit 1
+fi
 managed_pid=$(cat "$TCPDUMP_PID_FILE")
 [[ "$first_pid" != "$managed_pid" ]]
 shopt -s nullglob

@@ -205,6 +205,20 @@ def selection_options(available: list[str],
     return options
 
 
+def choose_categorized_modules(available: list[str], descriptions: dict[str, str] | None,
+                               categories: dict[str, str]) -> list[str]:
+    """Ask for concerns first, then modules within each chosen concern."""
+    category_names = sorted({categories[name] for name in available})
+    selected_categories = choose_modules([], False, category_names, heading="Categories",
+                                          selection_label="category")
+    selected = []
+    for category in selected_categories:
+        names = [name for name in available if categories[name] == category]
+        selected.extend(choose_modules([], False, names, descriptions,
+                                       heading=f"{category} modules"))
+    return selected
+
+
 def choose_targets(requested_modules: list[str], requested_components: list[str],
                    all_modules: bool, available: list[str],
                    descriptions: dict[str, str] | None = None,
@@ -225,7 +239,8 @@ def choose_targets(requested_modules: list[str], requested_components: list[str]
             raise RuntimeError(f"Unknown or uninstalled module: {', '.join(sorted(unknown))}")
     else:
         chosen = []
-        selected_modules = choose_modules([], False, available, descriptions)
+        selected_modules = choose_categorized_modules(
+            available, descriptions, {name: MODULES[name]["category"] for name in available})
         for module in selected_modules:
             definitions = MODULES.get(module, {}).get("components", {})
             if not definitions:

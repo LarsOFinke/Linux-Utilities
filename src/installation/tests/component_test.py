@@ -60,13 +60,14 @@ def main() -> None:
         binary = home / ".local/bin"
         registry = home / ".local/state/shell-scripts/registry.json"
 
-        output = interactive(REPOSITORY / "setup.sh", b"5\n1\n", environment)
-        assert "5. system" in output and "1. amd-gaming" in output
+        output = interactive(REPOSITORY / "setup.sh", b"4\n1\n1\n", environment)
+        assert "Categories:" in output and "System utilities modules:" in output
+        assert "1. system" in output and "1. amd-gaming" in output
         assert set(records(registry)["system"]["commands"]) == {"install-amd-gaming"}
-        output = interactive(REPOSITORY / "setup.sh", b"5\n1\n", environment)
+        output = interactive(REPOSITORY / "setup.sh", b"4\n1\n1\n", environment)
         assert "1. h848-audio" in output and "amd-gaming —" not in output
         assert "install-h848-audio-fix" in records(registry)["system"]["commands"]
-        output = interactive(REPOSITORY / "uninstall.sh", b"1\n1\n", environment)
+        output = interactive(REPOSITORY / "uninstall.sh", b"1\n1\n1\n", environment)
         assert "1. amd-gaming" in output and "2. h848-audio" in output
         assert "install-amd-gaming" not in records(registry)["system"]["commands"]
         run(REPOSITORY / "uninstall.sh", "--module", "system", environment=environment)
