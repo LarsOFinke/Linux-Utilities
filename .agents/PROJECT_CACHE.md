@@ -9,6 +9,7 @@ Read this compact map first, then the relevant module README. The root setup and
 | Monitoring | `network` | `src/modules/monitoring/network/` | `tests/capture_traffic_test.sh` |
 | Monitoring | `canary` | `src/modules/monitoring/canary/` | `tests/integration_test.sh` |
 | System utilities | `system` | `src/modules/system-utilities/system/` | `tests/h848_uninstall_test.sh` |
+| System utilities | `termlay` | `src/modules/system-utilities/termlay/` | `tests/termlay_test.py` |
 | Server services | `system-update` | `src/modules/server-services/system-update/` | `tests/update_system_test.sh` |
 | Server services | `ubuntu-updates` | `src/modules/server-services/ubuntu-updates/` | `tests/ubuntu_updates_test.sh` |
 | Server services | `vps-gateway` | `src/modules/server-services/vps-gateway/` | `tests/vps_gateway_test.sh` |

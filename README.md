@@ -12,6 +12,7 @@ Setup and uninstall require Python 3.9 or newer. Runtime requirements are listed
 ./setup.sh --ssh my-server --module network
 ./setup.sh --ssh my-server --component system:amd-gaming
 ./setup.sh --module system-update
+./setup.sh --module termlay
 ./setup.sh --component system:h848-audio
 sudo ./setup.sh --system --all
 ./setup.sh --list
@@ -48,6 +49,7 @@ Installed commands:
 | Monitoring / Network capture | Packet capture (`network`) | `capture-traffic` |
 | Monitoring / File events | Canary file monitoring (`canary`) | `fs-tracker`, `canary-configure`, `canary-status`, `canary-start`, `canary-stop`, `canary-remove`, `canary-remove-all` (system install) |
 | System utilities / Workstation setup | System utilities (`system`) | `install-amd-gaming`, `install-h848-audio-fix`, `uninstall-h848-audio-fix` |
+| System utilities / Terminal workflow | Terminal layouts (`termlay`) | `termlay` |
 | Server services / Package maintenance | Manual APT updates (`system-update`) | `update-system` |
 | Server services / Package maintenance | Ubuntu automatic updates (`ubuntu-updates`) | `ubuntu-updates-configure`, `ubuntu-updates-status`, `ubuntu-updates-logs`, `ubuntu-updates-dry-run`, `ubuntu-updates-run`, `ubuntu-updates-restore` (system install) |
 | Server services / Web gateway | NGINX and Certbot setup (`vps-gateway`) | `vps-gateway-configure`, `vps-gateway-status`, `vps-gateway-init`, `vps-gateway-add`, `vps-gateway-site-list`, `vps-gateway-site-render`, `vps-gateway-site-import` (system install) |
@@ -60,6 +62,8 @@ The previous multi-command entry points (`privacy-cleanup`, `ubuntu-updates`, `c
 
 `vps-gateway` is system-scope. Interactive setup offers a first-run wizard to choose a blueprint or copy an existing project NGINX site config, then activate the core, catch-all, and first site. Run `sudo vps-gateway-add` to add later hostnames through the same options. Project installers can stream a config to `sudo vps-gateway-site-import --host NAME --file -` over SSH after initialization. `sudo vps-gateway-configure` remains package-only. See the [VPS gateway guide](src/modules/server-services/vps-gateway/README.md).
 
+`termlay` saves named directories under the XDG configuration directory and opens them as Ptyxis tabs. For example, run `termlay save work ~/dev/frontend ~/dev/backend`, then `termlay open work`. See the [terminal layouts guide](src/modules/system-utilities/termlay/README.md) for storage, commands, and limitations.
+
 ## Layout
 
 ```text
@@ -70,7 +74,7 @@ src/
   modules/
     data-privacy/    backup/, privacy/
     monitoring/      network/, canary/
-    system-utilities/system/    AMD gaming and H848 audio components
+    system-utilities/ system/ and termlay/
     server-services/ system-update/, ubuntu-updates/, vps-gateway/
 .agents/          compact agent project map, qualities, debugging, cache
 ```
@@ -86,6 +90,7 @@ shellcheck setup.sh uninstall.sh
 bash src/modules/data-privacy/backup/tests/backup_home_test.sh
 bash src/modules/monitoring/network/tests/capture_traffic_test.sh
 bash src/modules/system-utilities/system/tests/h848_uninstall_test.sh
+python3 src/modules/system-utilities/termlay/tests/termlay_test.py
 bash src/modules/server-services/system-update/tests/update_system_test.sh
 bash src/modules/data-privacy/privacy/tests/privacy_cleanup_test.sh
 bash src/modules/server-services/ubuntu-updates/tests/ubuntu_updates_test.sh

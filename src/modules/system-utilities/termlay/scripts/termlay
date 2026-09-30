@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+"""Save and reopen named working directories as terminal tabs."""
+
+from __future__ import annotations
+
+import argparse
+import sys
+
+from termlay_core import LayoutStore, TermlayError, layout_from_paths, missing_directories
+from termlay_ptyxis import PtyxisBackend
+
+VERSION = "0.1.0"
+ALIASES = {"s": "save", "o": "open", "ls": "list", "rm": "delete"}
+
+
+def parser() -> argparse.ArgumentParser:
+    result = argparse.ArgumentParser(prog="termlay", description=__doc__)
+    result.add_argument("--version", action="version", version=f"termlay {VERSION}")
+    commands = result.add_subparsers(dest="command", required=True)
+    save = commands.add_parser("save", aliases=["s"], help="save a named layout")
+    save.add_argument("name")
+    save.add_argument("directories", nargs="*")
+    save.add_argument("--force", action="store_true", help="overwrite an existing layout")
+    opening = commands.add_parser("open", aliases=["o"], help="open a layout in Ptyxis")
+    opening.add_argument("name")
+    commands.add_parser("list", aliases=["ls"], help="list saved layouts")
+    show = commands.add_parser("show", help="show saved directories")
+    show.add_argument("name")
+    deleting = commands.add_parser("delete", aliases=["rm"], help="delete a layout")
+    deleting.add_argument("name")
+    return result
+
+
+def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    known = {"save", "s", "open", "o", "list", "ls", "show", "delete", "rm"}
+    if argv and not argv[0].startswith("-") and argv[0] not in known:
+        print(f"termlay: unknown command '{argv[0]}'\nRun 'termlay --help' for usage.", file=sys.stderr)
+        return 2
+    args = parser().parse_args(argv)
+    command = ALIASES.get(args.command, args.command)
+    store = LayoutStore()
+    if command == "save":
+        layout = layout_from_paths(args.name, args.directories)
+        store.save(layout, force=args.force)
+        print(f"Saved layout '{layout.name}' ({len(layout.directories)} tabs)")
+    elif command == "open":
+        layout = store.load(args.name)
+        missing = missing_directories(layout)
+        if missing:
+            raise TermlayError("missing layout directories:\n" + "\n".join(f"  {path}" for path in missing))
+        PtyxisBackend().open_layout(layout)
+        print(f"Opening layout '{layout.name}' ({len(layout.directories)} tabs)")
+    elif command == "list":
+        for name in store.list_names():
+            print(name)
+    elif command == "show":
+        layout = store.load(args.name)
+        print(f"Layout: {layout.name}\n")
+        for index, directory in enumerate(layout.directories, 1):
+            print(f"{index}  {directory}")
+    elif command == "delete":
+        store.delete(args.name)
+        print(f"Deleted layout '{args.name}'")
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except (OSError, TermlayError) as error:
+        print(f"termlay: {error}", file=sys.stderr)
+        sys.exit(1)
