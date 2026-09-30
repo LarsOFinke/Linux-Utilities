@@ -1,16 +1,19 @@
 # NGINX and Certbot setup
 
-This system-only module installs distribution NGINX and Certbot packages on Debian/Ubuntu VPS hosts and provides a gateway core plus application site blueprints. The optional first-run wizard can activate the first site and a catch-all after showing the exact plan.
+This system-only module installs distribution NGINX and Certbot packages on Debian/Ubuntu VPS hosts and provides a gateway core plus application site blueprints. Initialization can install the core and catch-all without an application site, so project deployers can register their own routes later.
 
 ```bash
 sudo ./setup.sh --system --module vps-gateway
-sudo vps-gateway-init           # run later if you skipped the setup prompt
+sudo vps-gateway-init --empty   # noninteractive core and catch-all; no project site
+sudo vps-gateway-init           # interactive alternative, with optional first site
 sudo vps-gateway-add            # interactively add another site
 sudo vps-gateway-site-import --host app.example.org --file /absolute/path/site.conf
 sudo vps-gateway-status
 vps-gateway-site-list
 sudo ./uninstall.sh --system --module vps-gateway
 ```
+
+For unattended host preparation, run `sudo vps-gateway-init --empty` after installing the module. It installs NGINX, Certbot, the HTTP core, proxy headers, and catch-all without a project site or input prompts. The interactive initializer also offers `core-only`. Portfolio and WoSB can then register their own routes during deployment.
 
 For package-only setup, use `sudo vps-gateway-configure`. After initialization, `sudo vps-gateway-add` offers a blueprint or `import-existing` for a project site config that is already written. For blueprints it asks for a hostname and port or document root. For import, enter the public hostname and an absolute path to a regular NGINX site config file; it must declare that exact `server_name`. The wizard previews the source and destination, copies the file unchanged without overwriting an existing site, runs `nginx -t`, and reloads NGINX. It leaves the project source file untouched and removes the new copy and symlink if validation or reload fails. Imported configs can reference their own snippets and certificates, which must already exist for `nginx -t` to pass. Review their listeners, upstreams, and logging policy before activation. TLS issuance is optional and requires working DNS. `vps-gateway-site-render` remains available for manual site generation. The original `vps-gateway` and `vps-gateway-site` subcommands remain available.
 

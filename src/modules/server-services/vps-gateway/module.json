@@ -34,7 +34,7 @@
   "post_install": {
     "command": "vps-gateway-init",
     "args": [],
-    "prompt": "Set up the first VPS gateway site now?"
+    "prompt": "Initialize the VPS gateway now? (A first site is optional.)"
   },
   "examples": [
     "configuration/project-site.conf.example",

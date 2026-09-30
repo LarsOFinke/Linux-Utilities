@@ -60,7 +60,7 @@ The previous multi-command entry points (`privacy-cleanup`, `ubuntu-updates`, `c
 
 `canary` is system-scope because its named services use systemd and fanotify privileges. Setup compiles and installs the sensor but does not create or start a service. See the [canary guide](src/modules/monitoring/canary/README.md) for configuration and safe removal.
 
-`vps-gateway` is system-scope. Interactive setup offers a first-run wizard to choose a blueprint or copy an existing project NGINX site config, then activate the core, catch-all, and first site. Run `sudo vps-gateway-add` to add later hostnames through the same options. Project installers can stream a config to `sudo vps-gateway-site-import --host NAME --file -` over SSH after initialization. `sudo vps-gateway-configure` remains package-only. See the [VPS gateway guide](src/modules/server-services/vps-gateway/README.md).
+`vps-gateway` is system-scope. Run `sudo vps-gateway-init --empty` to install the core and catch-all without a first project site; the interactive initializer also offers this choice. Project installers can then import their own routes with `sudo vps-gateway-site-import --host NAME --file PATH` or stream them through standard input with `--file -`. Run `sudo vps-gateway-add` for interactive site creation. `sudo vps-gateway-configure` remains package-only. See the [VPS gateway guide](src/modules/server-services/vps-gateway/README.md).
 
 `termlay` saves named directories under the XDG configuration directory and opens them as Ptyxis tabs. For example, run `termlay save work ~/dev/frontend ~/dev/backend`, then `termlay open work`. See the [terminal layouts guide](src/modules/system-utilities/termlay/README.md) for storage, commands, and limitations.
 

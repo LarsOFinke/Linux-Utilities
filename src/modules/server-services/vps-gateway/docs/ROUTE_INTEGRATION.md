@@ -1,5 +1,7 @@
 # Connect a project
 
+For automated project registration on a fresh VPS, install the module and run `sudo vps-gateway-init --empty` first. This prepares the shared NGINX core and catch-all without requiring a project route. Portfolio and WoSB deployment then import their own rendered site configs through `vps-gateway-site-import`.
+
 The [HTTP core](../configuration/core/http.conf.example) and [proxy header snippet](../configuration/core/proxy-headers.conf.example) are prerequisites for these blueprints. The first-run wizard installs them; [operations](OPERATIONS.md) covers manual setup. Each project keeps its edited site file in its own repository. The installed `vps-gateway-site` command renders any blueprint without needing the source checkout.
 
 If a project already has a complete NGINX site config, select `import-existing` in `sudo vps-gateway-init` or `sudo vps-gateway-add`. Enter its public hostname and absolute file path. The wizard copies the file unchanged to `sites-available`, creates the enabling symlink, tests NGINX, and reloads it. It refuses to overwrite a site and removes the new copy and symlink if validation or reload fails. The file must declare the selected hostname as an exact `server_name`; review referenced snippets, certificates, upstreams, listeners, and `access_log` policy before importing it.

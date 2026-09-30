@@ -257,6 +257,57 @@ sed 's/imported.example.org/first.example.org/' "$project_site" > "$test_dir/fir
 printf '7\nfirst.example.org\n%s\nn\ny\n' "$test_dir/first-site.conf" | SHELL_SCRIPTS_INSTALL_ROOT="$first_root" "$bin_dir/vps-gateway-init"
 cmp "$test_dir/first-site.conf" "$first_nginx/sites-available/first.example.org.conf"
 
+empty_root="$test_dir/empty-root"
+empty_nginx="$empty_root/etc/nginx"
+mkdir -p "$empty_nginx/sites-available" "$empty_nginx/sites-enabled" "$empty_nginx/conf.d" "$empty_nginx/snippets"
+cp "$gateway_root/nginx.conf" "$empty_nginx/nginx.conf"
+touch "$empty_nginx/sites-available/default"
+ln -s ../sites-available/default "$empty_nginx/sites-enabled/default"
+SHELL_SCRIPTS_INSTALL_ROOT="$empty_root" "$bin_dir/vps-gateway-init" --empty
+[[ -f "$empty_nginx/conf.d/vps-gateway.conf" ]]
+[[ -f "$empty_nginx/snippets/vps-gateway-proxy-headers.conf" ]]
+[[ -L "$empty_nginx/sites-enabled/vps-gateway-catch-all.conf" ]]
+[[ ! -e "$empty_nginx/sites-enabled/default" ]]
+[[ $(find "$empty_nginx/sites-enabled" -mindepth 1 -maxdepth 1 | wc -l) -eq 1 ]]
+portfolio_template="$repository/../Portfolio/infrastructure/nginx/host-site.conf"
+wosb_template="$repository/../WoSB-Website/infrastructure/nginx/host-site.conf"
+if [[ -f "$portfolio_template" && -f "$wosb_template" ]]; then
+    # The patterns match literal deployment template placeholders.
+    # shellcheck disable=SC2016
+    sed -e 's/${SERVER_NAME}/portfolio.example.org/g' \
+        -e 's/${PORTFOLIO_LOOPBACK_PORT}/18081/g' \
+        "$portfolio_template" > "$test_dir/portfolio-site.conf"
+    # shellcheck disable=SC2016
+    sed -e 's/${APP_HOSTNAME}/wosb.example.org/g' \
+        -e 's/${RBF_LOOPBACK_PORT}/18080/g' \
+        -e 's/${GATEWAY_MAX_BODY_MB}/90/g' \
+        "$wosb_template" > "$test_dir/wosb-site.conf"
+else
+    printf 'server { listen 80; server_name portfolio.example.org; proxy_pass http://127.0.0.1:18081; }\n' > "$test_dir/portfolio-site.conf"
+    printf 'server { listen 80; server_name wosb.example.org; proxy_pass http://127.0.0.1:18080; }\n' > "$test_dir/wosb-site.conf"
+fi
+SHELL_SCRIPTS_INSTALL_ROOT="$empty_root" "$bin_dir/vps-gateway-site-import" --host portfolio.example.org --file "$test_dir/portfolio-site.conf"
+SHELL_SCRIPTS_INSTALL_ROOT="$empty_root" "$bin_dir/vps-gateway-site-import" --host wosb.example.org --file "$test_dir/wosb-site.conf"
+cmp "$test_dir/portfolio-site.conf" "$empty_nginx/sites-available/portfolio.example.org.conf"
+cmp "$test_dir/wosb-site.conf" "$empty_nginx/sites-available/wosb.example.org.conf"
+
+empty_failure_root="$test_dir/empty-failure-root"
+empty_failure_nginx="$empty_failure_root/etc/nginx"
+mkdir -p "$empty_failure_nginx/sites-available" "$empty_failure_nginx/sites-enabled" "$empty_failure_nginx/conf.d" "$empty_failure_nginx/snippets"
+cp "$gateway_root/nginx.conf" "$empty_failure_nginx/nginx.conf"
+touch "$empty_failure_nginx/sites-available/default"
+ln -s ../sites-available/default "$empty_failure_nginx/sites-enabled/default"
+if SHELL_SCRIPTS_INSTALL_ROOT="$empty_failure_root" MOCK_FAIL_STAGED=1 "$bin_dir/vps-gateway-init" --empty >/dev/null 2>&1; then
+    echo 'Failed empty initialization should stop' >&2
+    exit 1
+fi
+[[ -L "$empty_failure_nginx/sites-enabled/default" ]]
+[[ ! -e "$empty_failure_nginx/conf.d/vps-gateway.conf" ]]
+[[ ! -e "$empty_failure_nginx/sites-enabled/vps-gateway-catch-all.conf" ]]
+printf '8\ny\n' | SHELL_SCRIPTS_INSTALL_ROOT="$empty_failure_root" "$bin_dir/vps-gateway-init"
+[[ -L "$empty_failure_nginx/sites-enabled/vps-gateway-catch-all.conf" ]]
+[[ $(find "$empty_failure_nginx/sites-enabled" -mindepth 1 -maxdepth 1 | wc -l) -eq 1 ]]
+
 missing_includes="$test_dir/missing-includes"
 missing_nginx="$missing_includes/etc/nginx"
 mkdir -p "$missing_nginx/sites-available" "$missing_nginx/sites-enabled" "$missing_nginx/conf.d" "$missing_nginx/snippets"

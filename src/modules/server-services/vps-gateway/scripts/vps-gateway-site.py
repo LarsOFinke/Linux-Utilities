@@ -36,7 +36,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     subcommands = parser.add_subparsers(dest="command", required=True)
     subcommands.add_parser("list", help="list available blueprints")
-    subcommands.add_parser("init", help="interactively install the first gateway site")
+    initialize = subcommands.add_parser("init", help="initialize the gateway, optionally with a first site")
+    initialize.add_argument("--empty", action="store_true", help="install the core and catch-all without a site or prompts")
     subcommands.add_parser("add", help="interactively add a site to the initialized gateway")
     imported = subcommands.add_parser("import", help="noninteractively activate a project site config")
     imported.add_argument("--host", type=hostname, required=True)
@@ -57,7 +58,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "init":
         try:
-            return init(templates(), core_templates())
+            return init(templates(), core_templates(), empty=args.empty)
         except (EOFError, KeyboardInterrupt):
             print("\nSetup cancelled.", file=sys.stderr)
             return 1
