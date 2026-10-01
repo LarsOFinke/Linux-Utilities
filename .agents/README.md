@@ -5,6 +5,7 @@
 - [ONBOARDING.md](ONBOARDING.md): how to inspect, change, and verify the project.
 - [QUALITIES.md](QUALITIES.md): required behavior and acceptance checks.
 - [BEST_PRACTICES.md](BEST_PRACTICES.md): Bash and operational conventions.
+- [REPOSITORY_SPRING_CLEANING.md](REPOSITORY_SPRING_CLEANING.md): module boundaries, migration, and cleanup checks.
 - [debugging/](debugging/README.md): reproducible investigation notes.
 - [cache/](cache/README.md): ignored, disposable local data.
 

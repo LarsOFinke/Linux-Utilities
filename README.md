@@ -81,6 +81,8 @@ src/
 
 Configuration examples use `.env.example` or `.cfg.example`. Local policy files and generated data are kept outside the repository. See each module README for settings and retention or rollback behavior.
 
+For maintenance, start with the [project map](.agents/PROJECT_CACHE.md), follow the [code qualities](.agents/QUALITIES.md), and use the [spring cleanup guide](.agents/REPOSITORY_SPRING_CLEANING.md) when moving modules or files. Keep Python classes in matching `PascalCase.py` files and update test discovery commands when renaming tests.
+
 ## Verify
 
 ```bash
@@ -97,7 +99,7 @@ bash src/modules/server-services/ubuntu-updates/tests/ubuntu_updates_test.sh
 bash src/modules/monitoring/canary/tests/integration_test.sh
 bash src/modules/monitoring/canary/tests/c_unit_test.sh
 bash src/modules/server-services/vps-gateway/tests/vps_gateway_test.sh
-PYTHONPATH=src/modules/monitoring/canary python3 -m unittest discover -s src/modules/monitoring/canary/tests -p 'test_*.py'
+PYTHONPATH=src/modules/monitoring/canary python3 -m unittest discover -s src/modules/monitoring/canary/tests -p '*Test*.py'
 bash src/installation/tests/setup_test.sh
 python3 src/installation/tests/orchestrator_ui_test.py
 python3 src/installation/tests/transaction_test.py

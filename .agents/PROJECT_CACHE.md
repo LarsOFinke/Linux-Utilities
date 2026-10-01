@@ -7,7 +7,7 @@ Read this compact map first, then the relevant module README. The root setup and
 | Data and privacy | `backup` | `src/modules/data-privacy/backup/` | `tests/backup_home_test.sh` |
 | Data and privacy | `privacy` | `src/modules/data-privacy/privacy/` | `tests/privacy_cleanup_test.sh` |
 | Monitoring | `network` | `src/modules/monitoring/network/` | `tests/capture_traffic_test.sh` |
-| Monitoring | `canary` | `src/modules/monitoring/canary/` | `tests/integration_test.sh` |
+| Monitoring | `canary` | `src/modules/monitoring/canary/` | `tests/integration_test.sh`, `tests/*Test*.py` |
 | System utilities | `system` | `src/modules/system-utilities/system/` | `tests/h848_uninstall_test.sh` |
 | System utilities | `termlay` | `src/modules/system-utilities/termlay/` | `tests/TermlayTest.py` |
 | Server services | `system-update` | `src/modules/server-services/system-update/` | `tests/update_system_test.sh` |
