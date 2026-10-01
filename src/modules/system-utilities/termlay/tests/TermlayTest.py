@@ -3,21 +3,31 @@
 
 from __future__ import annotations
 
+import hashlib
+import io
 import json
 import os
+import runpy
 import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
 MODULE = Path(__file__).resolve().parents[1]
 REPOSITORY = MODULE.parents[3]
+sys.path[:0] = [str(MODULE / "scripts" / concern) for concern in ("layout", "ptyxis")]
 sys.path.insert(0, str(MODULE / "scripts"))
 
-from termlay_core import Layout, LayoutStore, TermlayError, config_directory, layout_from_paths, missing_directories
-from termlay_ptyxis import PtyxisBackend
+from Layout import Layout
+from LayoutStore import LayoutStore
+from PtyxisBackend import PtyxisBackend
+from TermlayError import TermlayError
+from current_layout import current_layout, directory_from_title
+from layout_paths import config_directory, layout_from_paths, missing_directories
+from process_directory import foreground_directory
 
 
 class TermlayTest(unittest.TestCase):
@@ -115,6 +125,23 @@ class TermlayTest(unittest.TestCase):
         with self.assertRaises(TermlayError):
             store.load("broken")
 
+    def test_symlinked_layout_directory_is_refused_without_touching_target(self) -> None:
+        target = self.root / "shared"
+        target.mkdir(mode=0o755)
+        target.chmod(0o755)
+        sentinel = target / "work.json"
+        sentinel.write_text("leave me alone", encoding="utf-8")
+        layout_directory = self.xdg / "termlay/layouts"
+        layout_directory.parent.mkdir(parents=True)
+        layout_directory.symlink_to(target, target_is_directory=True)
+
+        for args in (("save", "work", str(self.first)), ("list",),
+                     ("show", "work"), ("delete", "work")):
+            result = self.run_cli(*args, success=False)
+            self.assertIn("symbolic-link layout directory", result.stderr)
+        self.assertEqual(target.stat().st_mode & 0o777, 0o755)
+        self.assertEqual(sentinel.read_text(encoding="utf-8"), "leave me alone")
+
     def test_open_validates_all_before_ptyxis_and_preserves_order(self) -> None:
         self.run_cli("save", "work", str(self.first), str(self.second))
         mock_bin = self.root / "bin"
@@ -139,15 +166,77 @@ class TermlayTest(unittest.TestCase):
     def test_backend_is_mockable(self) -> None:
         layout = layout_from_paths("work", [str(self.first), str(self.second)])
         self.assertEqual(missing_directories(layout), [])
-        with patch("termlay_ptyxis.shutil.which", return_value="/usr/bin/ptyxis"), \
-                patch("termlay_ptyxis.subprocess.run") as run:
+        with patch("PtyxisBackend.shutil.which", return_value="/usr/bin/ptyxis"), \
+                patch("PtyxisBackend.subprocess.run") as run:
             PtyxisBackend().open_layout(layout)
         self.assertEqual([call.args[0][-1] for call in run.call_args_list],
                          [str(self.first), str(self.second)])
 
+    def test_current_titles_foreground_process_and_manual_fallback(self) -> None:
+        self.assertEqual(directory_from_title("lars@laptop: ~/project"), "~/project")
+        self.assertIsNone(directory_from_title("Editor — node /usr/bin/codex"))
+
+        proc = self.root / "proc"
+        proc.mkdir()
+        for pid, parent, comm, argv in (("100", "1", "ptyxis-agent", b"ptyxis-agent\0"),
+                                         ("101", "100", "bash", b"bash\0"),
+                                         ("102", "101", "node", b"node\0/usr/bin/codex\0")):
+            process = proc / pid
+            process.mkdir()
+            (process / "comm").write_text(comm + "\n", encoding="utf-8")
+            (process / "status").write_text(f"PPid:\t{parent}\n", encoding="utf-8")
+            (process / "cmdline").write_bytes(argv)
+        (proc / "101/cwd").symlink_to(self.second, target_is_directory=True)
+        title = "Editor — node /usr/bin/codex"
+        self.assertEqual(foreground_directory(title, proc), str(self.second))
+        duplicate = proc / "103"
+        duplicate.mkdir()
+        (duplicate / "cmdline").write_bytes(b"node\0/usr/bin/codex\0")
+        self.assertIsNone(foreground_directory(title, proc))
+        other = proc / "104"
+        other.mkdir()
+        (other / "comm").write_text("python\n", encoding="utf-8")
+        (other / "status").write_text("PPid:\t101\n", encoding="utf-8")
+        (other / "cmdline").write_bytes(b"python\0/tmp/app.py\0")
+        self.assertEqual(foreground_directory("Editor — python /tmp/app.py", proc), str(self.second))
+
+        with patch("current_layout.read_current_tab_titles", return_value=[
+            f"lars@laptop: {self.first}", title,
+            f"lars@laptop: {self.root / 'missing'}", "Unknown tab"]), \
+                patch("current_layout.foreground_directory",
+                      side_effect=lambda value: str(self.second) if value == title else None), \
+                patch("builtins.input", side_effect=[str(self.first), str(self.first)]):
+            layout = current_layout("captured")
+        self.assertEqual(layout.directories, (self.first, self.second, self.first, self.first))
+
+    def test_save_current_cancel_preserves_existing_layout(self) -> None:
+        self.run_cli("save", "work", str(self.first))
+        existing = self.xdg / "termlay/layouts/work.json"
+        original = existing.read_bytes()
+        cli = runpy.run_path(str(self.command), run_name="termlay_cli")["main"]
+        with patch.dict(os.environ, self.environment), \
+                patch("current_layout.read_current_tab_titles", return_value=["Unknown tab"]), \
+                patch("builtins.input", return_value=""):
+            with self.assertRaises(TermlayError):
+                cli(["save-current", "work", "--force"])
+        with patch("current_layout.read_current_tab_titles", return_value=[]):
+            with self.assertRaisesRegex(TermlayError, "no Ptyxis tabs"):
+                cli(["save-current", "work", "--force"])
+        self.assertEqual(existing.read_bytes(), original)
+
+    def test_save_current_cli_writes_discovered_tabs_in_order(self) -> None:
+        cli = runpy.run_path(str(self.command), run_name="termlay_cli")["main"]
+        with patch.dict(os.environ, self.environment), \
+                patch("current_layout.read_current_tab_titles", return_value=[
+                    f"lars@laptop: {self.second}", f"lars@laptop: {self.first}"]), \
+                redirect_stdout(io.StringIO()):
+            self.assertEqual(cli(["save-current", "captured"]), 0)
+        saved = LayoutStore(self.xdg / "termlay/layouts").load("captured")
+        self.assertEqual(saved.directories, (self.second, self.first))
+
     def test_help_version_and_unknown_command(self) -> None:
         self.assertIn("save", self.run_cli("--help").stdout)
-        self.assertIn("termlay 0.1.0", self.run_cli("--version").stdout)
+        self.assertIn("termlay 0.2.0", self.run_cli("--version").stdout)
         result = self.run_cli("xyz", success=False)
         self.assertIn("unknown command 'xyz'", result.stderr)
         self.assertIn("termlay --help", result.stderr)
@@ -158,6 +247,20 @@ class TermlayTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         installed = self.home / ".local/bin/termlay"
         self.assertTrue(installed.is_file())
+        registry_path = self.home / ".local/state/shell-scripts/registry.json"
+        registry = json.loads(registry_path.read_text(encoding="utf-8"))
+        for name in ("termlay_core.py", "termlay_ptyxis.py"):
+            legacy = installed.parent / name
+            legacy.write_text("old helper\n", encoding="utf-8")
+            registry["modules"]["termlay"]["commands"][name] = {
+                "path": str(legacy), "source": str(legacy),
+                "sha256": hashlib.sha256(legacy.read_bytes()).hexdigest()}
+        registry_path.write_text(json.dumps(registry), encoding="utf-8")
+        result = subprocess.run([str(REPOSITORY / "setup.sh"), "--module", "termlay"],
+                                cwd=REPOSITORY, env=self.environment, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse((installed.parent / "termlay_core.py").exists())
+        self.assertFalse((installed.parent / "termlay_ptyxis.py").exists())
         result = subprocess.run([str(installed), "save", "installed", str(self.first)],
                                 cwd=self.second, env=self.environment, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)

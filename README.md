@@ -62,7 +62,7 @@ The previous multi-command entry points (`privacy-cleanup`, `ubuntu-updates`, `c
 
 `vps-gateway` is system-scope. Run `sudo vps-gateway-init --empty` to install the core and catch-all without a first project site; the interactive initializer also offers this choice. Project installers can then import their own routes with `sudo vps-gateway-site-import --host NAME --file PATH` or stream them through standard input with `--file -`. Run `sudo vps-gateway-add` for interactive site creation. `sudo vps-gateway-configure` remains package-only. See the [VPS gateway guide](src/modules/server-services/vps-gateway/README.md).
 
-`termlay` saves named directories under the XDG configuration directory and opens them as Ptyxis tabs. For example, run `termlay save work ~/dev/frontend ~/dev/backend`, then `termlay open work`. See the [terminal layouts guide](src/modules/system-utilities/termlay/README.md) for storage, commands, and limitations.
+`termlay` saves named directories under the XDG configuration directory and opens them as Ptyxis tabs. Run `termlay save-current work` in a Ptyxis window to discover its tabs, or `termlay save work ~/dev/frontend ~/dev/backend` to enter directories manually; then run `termlay open work`. See the [terminal layouts guide](src/modules/system-utilities/termlay/README.md) for storage, commands, and limitations.
 
 ## Layout
 
@@ -90,7 +90,7 @@ shellcheck setup.sh uninstall.sh
 bash src/modules/data-privacy/backup/tests/backup_home_test.sh
 bash src/modules/monitoring/network/tests/capture_traffic_test.sh
 bash src/modules/system-utilities/system/tests/h848_uninstall_test.sh
-python3 src/modules/system-utilities/termlay/tests/termlay_test.py
+python3 src/modules/system-utilities/termlay/tests/TermlayTest.py
 bash src/modules/server-services/system-update/tests/update_system_test.sh
 bash src/modules/data-privacy/privacy/tests/privacy_cleanup_test.sh
 bash src/modules/server-services/ubuntu-updates/tests/ubuntu_updates_test.sh

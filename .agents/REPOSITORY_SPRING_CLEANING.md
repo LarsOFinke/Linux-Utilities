@@ -6,6 +6,8 @@ The repository is a wrapper around independent modules. Root `setup.sh` and `uni
 
 Modules live under `src/modules/<concern>/<module>/`. The concern directories are `data-privacy`, `monitoring`, `system-utilities`, and `server-services`. Each module owns `module.json`, `README.md`, `setup.sh`, `uninstall.sh`, scripts or components, and focused tests. A manifest carries a category and a subcategory for navigation; those labels may change without changing the stable ID. Use a component in a module only when the tasks share a cohesive purpose and need independently selectable install ownership.
 
+Keep Python modules small and grouped by concern. Add subdirectories for cohesive areas such as `layout/` and `ptyxis/` when they make ownership clearer. Give each class its own `PascalCase.py` file, including test classes; put related standalone functions in descriptive `snake_case.py` files. Keep dependencies one way and remove unused abstractions. When splitting installed scripts, list every helper in the module manifest and verify that copied modules and installed commands still work from any directory.
+
 The `system` module contains the `amd-gaming` and `h848-audio` components. Manual APT updates moved to `server-services/system-update` as an independent module. `ubuntu-updates` owns unattended upgrade policy and remains distinct. `backup` separates snapshot and remote scripts. Other modules keep their own internal structure because their files already belong to one concern.
 
 ## Ownership and migration

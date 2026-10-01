@@ -9,10 +9,25 @@
   "documentation": "README.md",
   "commands": {
     "termlay": "scripts/termlay",
-    "termlay_core.py": "scripts/termlay_core.py",
-    "termlay_ptyxis.py": "scripts/termlay_ptyxis.py"
+    "Layout.py": "scripts/layout/Layout.py",
+    "LayoutStore.py": "scripts/layout/LayoutStore.py",
+    "PtyxisBackend.py": "scripts/ptyxis/PtyxisBackend.py",
+    "TermlayError.py": "scripts/TermlayError.py",
+    "current_layout.py": "scripts/ptyxis/current_layout.py",
+    "layout_paths.py": "scripts/layout/layout_paths.py",
+    "process_directory.py": "scripts/ptyxis/process_directory.py",
+    "ptyxis_tabs.py": "scripts/ptyxis/ptyxis_tabs.py"
   },
-  "non_executable_commands": ["termlay_core.py", "termlay_ptyxis.py"],
+  "non_executable_commands": [
+    "Layout.py",
+    "LayoutStore.py",
+    "PtyxisBackend.py",
+    "TermlayError.py",
+    "current_layout.py",
+    "layout_paths.py",
+    "process_directory.py",
+    "ptyxis_tabs.py"
+  ],
   "examples": [],
   "cron_templates": [],
   "scopes": ["user", "system"]

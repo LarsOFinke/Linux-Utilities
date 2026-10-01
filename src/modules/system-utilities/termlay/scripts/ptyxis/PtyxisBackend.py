@@ -1,11 +1,12 @@
-"""Ptyxis terminal backend using its documented command line interface."""
+"""Open saved layouts with Ptyxis."""
 
 from __future__ import annotations
 
 import shutil
 import subprocess
 
-from termlay_core import Layout, TermlayError
+from Layout import Layout
+from TermlayError import TermlayError
 
 
 class PtyxisBackend:

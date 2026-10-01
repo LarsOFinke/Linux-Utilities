@@ -9,7 +9,7 @@ Read this compact map first, then the relevant module README. The root setup and
 | Monitoring | `network` | `src/modules/monitoring/network/` | `tests/capture_traffic_test.sh` |
 | Monitoring | `canary` | `src/modules/monitoring/canary/` | `tests/integration_test.sh` |
 | System utilities | `system` | `src/modules/system-utilities/system/` | `tests/h848_uninstall_test.sh` |
-| System utilities | `termlay` | `src/modules/system-utilities/termlay/` | `tests/termlay_test.py` |
+| System utilities | `termlay` | `src/modules/system-utilities/termlay/` | `tests/TermlayTest.py` |
 | Server services | `system-update` | `src/modules/server-services/system-update/` | `tests/update_system_test.sh` |
 | Server services | `ubuntu-updates` | `src/modules/server-services/ubuntu-updates/` | `tests/ubuntu_updates_test.sh` |
 | Server services | `vps-gateway` | `src/modules/server-services/vps-gateway/` | `tests/vps_gateway_test.sh` |
@@ -17,6 +17,9 @@ Read this compact map first, then the relevant module README. The root setup and
 `configuration/install.json` maps stable IDs to manifests. Manifests own categories, subcategories, commands, scopes, and hooks. `src/installation/` owns catalog validation, shared registry transactions, and interactive selection; its tests cover routing, components, and copied module portability. The `system` module has independently selectable `amd-gaming` and `h848-audio` components. Manual `update-system` belongs to `system-update`; shared registries with the old `system:update` entry migrate on read.
 
 Each module directory can be copied out and installed without the repository using its synchronized `portable_module.py`. Shared and portable registries are distinct. Both track installed command ownership; root uninstall checks the user and system shared registries and installed files. Generated state stays outside Git.
+
+`termlay save-current NAME` reads the focused Ptyxis window through AT-SPI, resolves standard shell titles and uniquely matched local foreground processes, and prompts for any remaining tab directory before saving the complete layout.
+Its `scripts/layout/` and `scripts/ptyxis/` directories split storage from terminal integration. Each class has a PascalCase file; function modules keep path validation, accessibility reading, process lookup, and capture flow separate.
 
 The root wrapper also accepts `--ssh TARGET` for module and component setup/removal. It sends a portable module bundle, records successful remote deployments in the local user registry, and scans the target's portable state for selection and status. Remote removal still runs the module's portable hash checks. Network capture accepts named profiles plus port and IPv4 subnet filters; its module-owned capture registry records settings and checks whether the recorded PID is active.
 
