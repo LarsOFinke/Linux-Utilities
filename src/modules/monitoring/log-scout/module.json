@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "id": "log-scout",
+  "display_name": "Linux log triage (prototype)",
+  "category": "Monitoring",
+  "subcategory": "Log analysis",
+  "description": "bounded log scans with private cached summaries and category drill-down",
+  "setup": "setup.sh",
+  "documentation": "README.md",
+  "commands": {
+    "log-scout": "scripts/log-scout",
+    "LogScoutCache.py": "scripts/LogScoutCache.py",
+    "log_scout_cli.py": "scripts/log_scout_cli.py",
+    "log_scout_rules.py": "scripts/log_scout_rules.py",
+    "log_scout_scan.py": "scripts/log_scout_scan.py",
+    "log_scout_sources.py": "scripts/log_scout_sources.py",
+    "log_scout_view.py": "scripts/log_scout_view.py"
+  },
+  "non_executable_commands": [
+    "LogScoutCache.py",
+    "log_scout_cli.py",
+    "log_scout_rules.py",
+    "log_scout_scan.py",
+    "log_scout_sources.py",
+    "log_scout_view.py"
+  ],
+  "examples": [
+    "configuration/cache.env.example"
+  ],
+  "cron_templates": [],
+  "scopes": [
+    "user",
+    "system"
+  ]
+}

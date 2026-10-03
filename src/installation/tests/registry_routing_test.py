@@ -84,7 +84,7 @@ def main() -> None:
         for module in SYSTEM_ONLY:
             run(module_entry(module, "uninstall.sh"), environment=environment)
         assert not registered(system_registry)
-        for module in ("backup", "privacy", "system", "system-update", "termlay"):
+        for module in (name for name in MODULES if name not in SYSTEM_ONLY and name != "network"):
             run(module_entry(module, "uninstall.sh"), environment=environment)
         assert registered(user_registry) == {"network"}
 

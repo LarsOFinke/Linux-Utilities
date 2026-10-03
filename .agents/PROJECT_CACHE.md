@@ -7,6 +7,7 @@ Read this compact map first, then the relevant module README. The root setup and
 | Data and privacy | `backup` | `src/modules/data-privacy/backup/` | `tests/backup_home_test.sh` |
 | Data and privacy | `privacy` | `src/modules/data-privacy/privacy/` | `tests/privacy_cleanup_test.sh` |
 | Monitoring | `network` | `src/modules/monitoring/network/` | `tests/capture_traffic_test.sh` |
+| Monitoring | `log-scout` | `src/modules/monitoring/log-scout/` | `tests/LogScoutTest.py` |
 | Monitoring | `canary` | `src/modules/monitoring/canary/` | `tests/integration_test.sh`, `tests/*Test*.py` |
 | System utilities | `system` | `src/modules/system-utilities/system/` | `tests/h848_uninstall_test.sh` |
 | System utilities | `termlay` | `src/modules/system-utilities/termlay/` | `tests/TermlayTest.py` |
@@ -28,3 +29,5 @@ The root wrapper also accepts `--ssh TARGET` for module and component setup/remo
 VPS-Gateway can initialize its HTTP core, proxy headers, and catch-all without a site using `vps-gateway-init --empty` or the interactive `core-only` choice. The first-run and add-site wizards also offer blueprint generation or `import-existing`, which copies a project NGINX site config unchanged and validates it before reload. `vps-gateway-site-import --host NAME --file PATH|- [--replace]` supports noninteractive project deployments after empty initialization; replacements retain a private backup. Generated sites use the shared `vps_gateway` query-free access-log format; imported configs own their logging policy.
 
 Use the validation commands in the root README and avoid live host operations when testing. See `REPOSITORY_SPRING_CLEANING.md` for the structure and future change checklist.
+
+`log-scout` is a read-only prototype for bounded journal/text scans, category summaries, repeated-message groups, and cached examples. Its CLI composes pure scan/source/rule/view functions with `LogScoutCache.py`; schema-v1 snapshots remain private under the XDG cache directory. Unknown formats are refused, incomplete coverage is visible, and uninstall preserves cached results. Tests use synthetic logs and a real pseudo-terminal, not host logs.

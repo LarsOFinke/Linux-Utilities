@@ -19,6 +19,7 @@
     "privacy": "src/modules/data-privacy/privacy/module.json",
     "canary": "src/modules/monitoring/canary/module.json",
     "vps-gateway": "src/modules/server-services/vps-gateway/module.json",
-    "ubuntu-updates": "src/modules/server-services/ubuntu-updates/module.json"
+    "ubuntu-updates": "src/modules/server-services/ubuntu-updates/module.json",
+    "log-scout": "src/modules/monitoring/log-scout/module.json"
   }
 }

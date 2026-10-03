@@ -13,6 +13,7 @@ Setup and uninstall require Python 3.9 or newer. Runtime requirements are listed
 ./setup.sh --ssh my-server --component system:amd-gaming
 ./setup.sh --module system-update
 ./setup.sh --module termlay
+./setup.sh --module log-scout
 ./setup.sh --component system:h848-audio
 sudo ./setup.sh --system --all
 ./setup.sh --list
@@ -46,6 +47,7 @@ Installed commands:
 | --- | --- | --- |
 | Data and privacy / Backups | Home backup and remote copy (`backup`) | `backup-home`, `backup-home-cron`, `backup-home-prune`, `fetch-remote-backup` |
 | Data and privacy / Retention | History and log cleanup (`privacy`) | `privacy-configure`, `privacy-status`, `privacy-run`, `privacy-scheduled`, `privacy-uninstall-schedule` |
+| Monitoring / Log analysis | Linux log triage prototype (`log-scout`) | `log-scout` |
 | Monitoring / Network capture | Packet capture (`network`) | `capture-traffic` |
 | Monitoring / File events | Canary file monitoring (`canary`) | `fs-tracker`, `canary-configure`, `canary-status`, `canary-start`, `canary-stop`, `canary-remove`, `canary-remove-all` (system install) |
 | System utilities / Workstation setup | System utilities (`system`) | `install-amd-gaming`, `install-h848-audio-fix`, `uninstall-h848-audio-fix` |
@@ -64,6 +66,13 @@ The previous multi-command entry points (`privacy-cleanup`, `ubuntu-updates`, `c
 
 `termlay` saves named directories under the XDG configuration directory and opens them as Ptyxis tabs. Run `termlay save-current work` in a Ptyxis window to discover its tabs, or `termlay save work ~/dev/frontend ~/dev/backend` to enter directories manually; then run `termlay open work`. See the [terminal layouts guide](src/modules/system-utilities/termlay/README.md) for storage, commands, and limitations.
 
+`log-scout` scans recent journal entries or selected text logs, summarizes warning/error
+categories, and lets you drill into repeated-message groups and representative examples.
+Run `log-scout` for scan-and-browse, `log-scout scan --file /path/to/app.log` for a text log,
+and `log-scout summary`, `log-scout details network`, or `log-scout history` to reopen
+private cached scans. It is a bounded, read-only prototype; coverage limits and source
+failures are shown in each summary. See the [log triage guide](src/modules/monitoring/log-scout/README.md).
+
 ## Layout
 
 ```text
@@ -73,7 +82,7 @@ src/
   installation/   registry-based setup/uninstall logic and tests
   modules/
     data-privacy/    backup/, privacy/
-    monitoring/      network/, canary/
+    monitoring/      network/, canary/, log-scout/
     system-utilities/ system/ and termlay/
     server-services/ system-update/, ubuntu-updates/, vps-gateway/
 .agents/          compact agent project map, qualities, debugging, cache
@@ -93,6 +102,7 @@ bash src/modules/data-privacy/backup/tests/backup_home_test.sh
 bash src/modules/monitoring/network/tests/capture_traffic_test.sh
 bash src/modules/system-utilities/system/tests/h848_uninstall_test.sh
 python3 src/modules/system-utilities/termlay/tests/TermlayTest.py
+python3 src/modules/monitoring/log-scout/tests/LogScoutTest.py
 bash src/modules/server-services/system-update/tests/update_system_test.sh
 bash src/modules/data-privacy/privacy/tests/privacy_cleanup_test.sh
 bash src/modules/server-services/ubuntu-updates/tests/ubuntu_updates_test.sh

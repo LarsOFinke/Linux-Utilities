@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+"""Run the log-scout prototype from a checkout or installed command directory."""
+from log_scout_cli import main
+
+if __name__ == "__main__":
+    raise SystemExit(main())

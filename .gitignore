@@ -39,3 +39,6 @@ __pycache__/
 **/etc/systemd/system/fs-file-monitor-*.service
 **/registry.json
 **/network-capture.json
+
+# Private diagnostic snapshots if a cache root is placed inside this checkout.
+**/.cache/linux-utilities/log-scout/
