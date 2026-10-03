@@ -93,4 +93,26 @@ if "$script" >/dev/null 2>&1; then
 fi
 kill -0 "$unrelated_pid"
 kill -0 "$managed_pid"
+# Concurrent profiles must retain both records, and detached captures must not
+# inherit the registry lock (otherwise the second invocation never completes).
+printf '%s\n' "$managed_pid" >"$TCPDUMP_PID_FILE"
+"$script" --stop
+managed_pid=
+TCPDUMP_FILE="$test_dir/parallel-a.pcap" TCPDUMP_PID_FILE="$test_dir/parallel-a.pid" \
+    timeout 15 "$script" --name parallel-a &
+rotation_a=$!
+TCPDUMP_FILE="$test_dir/parallel-b.pcap" TCPDUMP_PID_FILE="$test_dir/parallel-b.pid" \
+    timeout 15 "$script" --name parallel-b &
+rotation_b=$!
+wait "$rotation_a"
+managed_pid=$(cat "$test_dir/parallel-a.pid")
+wait "$rotation_b"
+other_pid=$(cat "$test_dir/parallel-b.pid")
+"$script" --list >"$test_dir/listing"
+rg -q 'parallel-a \[active\]' "$test_dir/listing"
+rg -q 'parallel-b \[active\]' "$test_dir/listing"
+"$script" --name parallel-a --stop
+"$script" --name parallel-b --stop
+managed_pid=
+other_pid=
 printf 'Capture tests passed\n'

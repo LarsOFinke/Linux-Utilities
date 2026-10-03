@@ -32,3 +32,5 @@ The installation tests use temporary home and system prefixes: `bash src/install
 Run `python3 src/installation/tests/component_test.py` for component lifecycle checks.
 Run `python3 src/installation/tests/registry_routing_test.py` for direct and root wrapper routing across both scopes.
 Run `python3 src/installation/tests/remote_deploy_test.py` for the SSH prototype and deployment record lifecycle.
+
+Registry mutations hold one scope lock across fresh reads, ownership checks, file changes, rollback, and publication. Shared installers, portable installers, and local SSH deployment records use the same scope lock. Lock files remain in place after uninstall. Profile cleanup refuses symbolic links before removing commands and publishes the edited profile atomically. Run `python3 src/installation/tests/concurrency_test.py` for overlapping-operation and profile safety checks.

@@ -5,6 +5,9 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import fcntl
+import stat
+from contextlib import contextmanager
 import json
 import os
 import re
@@ -17,6 +20,21 @@ from pathlib import Path
 MODULE = Path(__file__).resolve().parent
 MANIFEST = json.loads((MODULE / "module.json").read_text(encoding="utf-8"))
 NAME = MANIFEST["id"]
+
+
+@contextmanager
+def registry_lock(path: Path):
+    """Serialize the complete read/modify/publish operation; never unlink the lock."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.parent.chmod(0o700)
+    descriptor = os.open(path.parent / "registry.lock", os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    try:
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            raise RuntimeError("Registry lock must be a regular file")
+        fcntl.flock(descriptor, fcntl.LOCK_EX)
+        yield
+    finally:
+        os.close(descriptor)
 
 
 def fail(message: str) -> None:
@@ -256,10 +274,12 @@ def main() -> None:
     selected = set(args.component) if args.component else None
     if selected is not None:
         component_commands(selected)
-    if args.action == "install":
-        install(bin_dir, state_path, root, system, selected)
-    else:
-        uninstall(state_path, read_state(state_path, system), system, args.force, args.purge_config, root, selected)
+    with registry_lock(state_path.parent.parent / "registry.json"):
+        if args.action == "install":
+            install(bin_dir, state_path, root, system, selected)
+        else:
+            uninstall(state_path, read_state(state_path, system), system, args.force, args.purge_config, root, selected)
+
 
 
 if __name__ == "__main__":

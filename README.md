@@ -103,6 +103,7 @@ PYTHONPATH=src/modules/monitoring/canary python3 -m unittest discover -s src/mod
 bash src/installation/tests/setup_test.sh
 python3 src/installation/tests/orchestrator_ui_test.py
 python3 src/installation/tests/transaction_test.py
+python3 src/installation/tests/concurrency_test.py
 python3 src/installation/tests/portable_modules_test.py
 python3 src/installation/tests/component_test.py
 python3 src/installation/tests/registry_routing_test.py

@@ -5,6 +5,9 @@ from __future__ import annotations
 
 import argparse
 import copy
+import fcntl
+import stat
+from contextlib import contextmanager
 import hashlib
 import json
 import os
@@ -18,6 +21,21 @@ from pathlib import Path
 from catalog import CATALOG, MODULES, REPOSITORY, choose_targets, component_commands, installed_components, selection_options
 
 DEFAULT_PROFILE_LINE = 'export PATH="$HOME/.local/bin:$PATH" # shell-scripts setup'
+
+
+@contextmanager
+def registry_lock(path: Path):
+    """Serialize the complete read/modify/publish operation; never unlink the lock."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.parent.chmod(0o700)
+    descriptor = os.open(path.parent / "registry.lock", os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    try:
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            raise RuntimeError("Registry lock must be a regular file")
+        fcntl.flock(descriptor, fcntl.LOCK_EX)
+        yield
+    finally:
+        os.close(descriptor)
 
 
 def sha256(path: Path) -> str:
@@ -200,6 +218,14 @@ def ensure_user_path(home: Path, registry: dict, bin_dir: Path) -> Path | None:
 def install(selected: list[str], registry: dict, bin_dir: Path, registry_path: Path, system: bool,
             built: dict[tuple[str, str], Path] | None = None,
             components: dict[str, set[str] | None] | None = None) -> None:
+    with registry_lock(registry_path):
+        current = read_registry(registry_path, "system" if system else "user", bin_dir)
+        _install(selected, current, bin_dir, registry_path, system, built, components)
+
+
+def _install(selected: list[str], registry: dict, bin_dir: Path, registry_path: Path, system: bool,
+            built: dict[tuple[str, str], Path] | None = None,
+            components: dict[str, set[str] | None] | None = None) -> None:
     changes = copy.deepcopy(registry)
     desired: dict[str, tuple[set[str], set[str] | None]] = {}
     writing: dict[str, set[str]] = {}
@@ -354,15 +380,31 @@ def remove_profile_line(home: Path, registry: dict) -> None:
     if not registry.get("profile_added"):
         return
     profile = home / ".profile"
+    if profile.is_symlink():
+        raise RuntimeError(f"Refusing symbolic-link profile: {profile}")
     if not profile.exists():
         return
     lines = profile.read_text(encoding="utf-8").splitlines()
     profile_line = registry.get("profile_line", DEFAULT_PROFILE_LINE)
-    profile.write_text("\n".join(line for line in lines if line != profile_line) + "\n", encoding="utf-8")
+    content = ("\n".join(line for line in lines if line != profile_line) + "\n").encode("utf-8")
+    restore_files({profile: (content, profile.stat().st_mode & 0o777)})
     registry["profile_added"] = False
 
 
-def uninstall(
+def uninstall(selected: list[str], registry: dict, registry_path: Path, system: bool,
+              base: Path, force: bool, purge_config: bool,
+              components: dict[str, set[str] | None] | None = None) -> None:
+    with registry_lock(registry_path):
+        current = read_registry(registry_path, "system" if system else "user", paths(system)[0])
+        missing = set(selected) - current["modules"].keys()
+        if missing:
+            raise RuntimeError(f"Modules no longer installed: {', '.join(sorted(missing))}")
+        if not system and current.get("profile_added") and (base / ".profile").is_symlink():
+            raise RuntimeError(f"Refusing symbolic-link profile: {base / '.profile'}")
+        _uninstall(selected, current, registry_path, system, base, force, purge_config, components)
+
+
+def _uninstall(
     selected: list[str],
     registry: dict,
     registry_path: Path,

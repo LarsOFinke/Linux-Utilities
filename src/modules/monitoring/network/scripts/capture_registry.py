@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import os
 import signal
+import stat
 import sys
 import tempfile
 import time
@@ -56,6 +57,18 @@ def write_state(path: Path, state: dict) -> None:
 def main() -> None:
     action, *args = sys.argv[1:]
     path = state_path()
+    if action == "lock-path" and not args:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.parent.chmod(0o700)
+        lock = path.with_name(path.name + ".lock")
+        descriptor = os.open(lock, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+        try:
+            if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+                raise RuntimeError("Capture lock must be a regular file")
+        finally:
+            os.close(descriptor)
+        print(lock)
+        return
     state = read_state(path)
     profiles = state["profiles"]
     if action == "list" and not args:

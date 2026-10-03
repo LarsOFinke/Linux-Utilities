@@ -51,6 +51,12 @@ while (( $# )); do
     esac
 done
 [[ $profile =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]] || { echo 'Invalid capture profile name' >&2; exit 2; }
+# All profiles share one registry. Hold its lock through ownership checks,
+# process changes, and publication; stop/list use the same lock as rotation.
+registry_lock=$(python3 "$registry_command" lock-path)
+[[ ! -L "$registry_lock" && -f "$registry_lock" ]] || { echo 'Unsafe capture registry lock' >&2; exit 1; }
+exec {registry_fd}<>"$registry_lock"
+flock -x "$registry_fd"
 if (( list_profiles )); then
     exec python3 "$registry_command" list
 fi
@@ -167,7 +173,7 @@ if [[ -f "$capture_file" ]]; then
 fi
 
 nohup "$tcpdump_command" -i "$interface" -w "$capture_file" "${filter[@]}" \
-    {lock_fd}>&- >>"$log_file" 2>&1 </dev/null &
+    {lock_fd}>&- {registry_fd}>&- >>"$log_file" 2>&1 </dev/null &
 new_pid=$!
 sleep 0.3
 if ! managed_tcpdump "$new_pid"; then

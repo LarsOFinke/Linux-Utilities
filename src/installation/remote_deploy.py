@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from catalog import MODULES, REPOSITORY
-from manage import atomic_json, paths, read_registry
+from manage import atomic_json, paths, read_registry, registry_lock
 
 BOOTSTRAP = r'''
 import json, os, pathlib, subprocess, sys, tarfile, tempfile
@@ -92,30 +92,31 @@ def scan_remote(target: str, scope: str) -> dict:
 
 
 def record(target: str, scope: str, module: str, components: set[str] | None, action: str) -> None:
-    registry, path = local_registry()
-    deployments = registry.setdefault("remote_deployments", {})
-    scopes = deployments.setdefault(target, {})
-    entries = scopes.setdefault(scope, {})
-    if action == "install":
-        names = set(MODULES[module]["components"]) if components is None else components
-        previous = entries.get(module, {}).get("components", [])
-        entries[module] = {"components": sorted(set(previous) | names) if MODULES[module]["components"] else None,
-                           "updated_at": datetime.now(timezone.utc).isoformat()}
-    elif module in entries:
-        if components is None or not MODULES[module]["components"]:
-            del entries[module]
-        else:
-            remaining = set(entries[module]["components"] or []) - components
-            if remaining:
-                entries[module]["components"] = sorted(remaining)
-            else:
+    with registry_lock(paths(False)[1]):
+        registry, path = local_registry()
+        deployments = registry.setdefault("remote_deployments", {})
+        scopes = deployments.setdefault(target, {})
+        entries = scopes.setdefault(scope, {})
+        if action == "install":
+            names = set(MODULES[module]["components"]) if components is None else components
+            previous = entries.get(module, {}).get("components", [])
+            entries[module] = {"components": sorted(set(previous) | names) if MODULES[module]["components"] else None,
+                               "updated_at": datetime.now(timezone.utc).isoformat()}
+        elif module in entries:
+            if components is None or not MODULES[module]["components"]:
                 del entries[module]
-    if not entries:
-        del scopes[scope]
-    if not scopes:
-        del deployments[target]
-    registry["updated_at"] = datetime.now(timezone.utc).isoformat()
-    atomic_json(path, registry)
+            else:
+                remaining = set(entries[module]["components"] or []) - components
+                if remaining:
+                    entries[module]["components"] = sorted(remaining)
+                else:
+                    del entries[module]
+        if not entries:
+            del scopes[scope]
+        if not scopes:
+            del deployments[target]
+        registry["updated_at"] = datetime.now(timezone.utc).isoformat()
+        atomic_json(path, registry)
 
 
 def archive_module(module: str) -> bytes:

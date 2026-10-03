@@ -18,6 +18,8 @@ Read this compact map first, then the relevant module README. The root setup and
 
 Each module directory can be copied out and installed without the repository using its synchronized `portable_module.py`. Shared and portable registries are distinct. Both track installed command ownership; root uninstall checks the user and system shared registries and installed files. Generated state stays outside Git.
 
+Shared installs, portable installs, and local remote-deployment records serialize mutations through the same per-scope registry lock. Capture rotation, stop, and list serialize through one capture-registry lock across profiles. Installer concurrency and profile-symlink rejection are covered by `src/installation/tests/concurrency_test.py`.
+
 `termlay save-current NAME` reads the focused Ptyxis window through AT-SPI, resolves standard shell titles and uniquely matched local foreground processes, and prompts for any remaining tab directory before saving the complete layout.
 Its `scripts/layout/` and `scripts/ptyxis/` directories split storage from terminal integration. Each class has a PascalCase file; function modules keep path validation, accessibility reading, process lookup, and capture flow separate.
 
