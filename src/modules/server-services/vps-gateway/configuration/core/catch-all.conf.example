@@ -2,14 +2,16 @@
 # Enable after removing any other default_server on 80/443 (including sites-enabled/default).
 # Unknown hosts do not fall through to an application site.
 server {
+    server_tokens off;
     listen 80 default_server;
     listen [::]:80 default_server;
     server_name _;
     access_log /var/log/nginx/access.log vps_gateway;
-    return 444;
+    return 404;
 }
 
 server {
+    server_tokens off;
     listen 443 ssl default_server;
     listen [::]:443 ssl default_server;
     server_name _;

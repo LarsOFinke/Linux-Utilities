@@ -75,10 +75,15 @@ from vps_site_model import BLUEPRINTS
 module = Path('src/modules/server-services/vps-gateway')
 core = (module / 'configuration/core/http.conf.example').read_text()
 assert 'log_format vps_gateway' in core
+assert not any(line.strip().startswith('server_tokens ') for line in core.splitlines())
+catchall = (module / 'configuration/core/catch-all.conf.example').read_text()
+assert catchall.count('server_tokens off;') == catchall.count('server {')
+assert 'return 404;' in catchall and 'return 444;' not in catchall
 assert '$request_uri' not in core and '$http_referer' not in core
 for blueprint in BLUEPRINTS:
     site = (module / f'configuration/blueprints/{blueprint}.conf.example').read_text()
     assert 'access_log /var/log/nginx/access.log vps_gateway;' in site
+    assert site.count('server_tokens off;') == site.count('server {')
 spa = (module / 'configuration/blueprints/spa.conf.example').read_text()
 assert spa.index('location ~ /\\.') < spa.index('location ~* \\.')
 PY

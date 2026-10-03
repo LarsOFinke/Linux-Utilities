@@ -1,5 +1,6 @@
 # Generic HTTP application, including Java/Spring Boot and Python ASGI/WSGI.
 server {
+    server_tokens off;
     listen 80;
     listen [::]:80;
     server_name app.example.org;

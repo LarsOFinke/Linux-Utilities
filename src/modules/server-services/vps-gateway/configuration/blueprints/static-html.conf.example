@@ -1,5 +1,6 @@
 # Plain HTML/assets. Files must be readable by www-data.
 server {
+    server_tokens off;
     listen 80;
     listen [::]:80;
     server_name static.example.org;

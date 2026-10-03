@@ -1,5 +1,6 @@
 # Spring Boot or another JVM HTTP service, bound to 127.0.0.1:18083.
 server {
+    server_tokens off;
     listen 80;
     listen [::]:80;
     server_name java.example.org;

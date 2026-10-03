@@ -1,6 +1,7 @@
 # Included from nginx.conf's http {} through /etc/nginx/conf.d/*.conf.
 # Shared policy for VPS gateway sites. Each site opts into the limit zones.
-server_tokens off;
+# Version hiding belongs in each server block to avoid duplicate directives
+# when the distribution already sets server_tokens in nginx.conf.
 add_header X-Content-Type-Options "nosniff" always;
 # Generated sites select this format so query strings stay out of access logs.
 log_format vps_gateway '$remote_addr - $remote_user [$time_local] '

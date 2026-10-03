@@ -1,5 +1,6 @@
 # FastAPI, Django ASGI, or another Python HTTP service, bound to 127.0.0.1:18084.
 server {
+    server_tokens off;
     listen 80;
     listen [::]:80;
     server_name python.example.org;

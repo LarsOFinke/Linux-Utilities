@@ -1,5 +1,6 @@
 # Compatibility example. New projects can use configuration/blueprints/http-app.conf.example.
 server {
+    server_tokens off;
     listen 80;
     listen [::]:80;
     server_name app.example.org;

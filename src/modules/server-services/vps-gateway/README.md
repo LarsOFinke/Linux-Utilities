@@ -13,6 +13,10 @@ vps-gateway-site-list
 sudo ./uninstall.sh --system --module vps-gateway
 ```
 
+The HTTP catch-all returns a generic 404 error page for unregistered hostnames
+and bare IP requests. Unknown TLS names are rejected during the handshake.
+Keep application routes bound to their hostnames rather than the bare server IP.
+
 For unattended host preparation, run `sudo vps-gateway-init --empty` after installing the module. It installs NGINX, Certbot, the HTTP core, proxy headers, and catch-all without a project site or input prompts. The interactive initializer also offers `core-only`. Portfolio and WoSB can then register their own routes during deployment.
 
 For package-only setup, use `sudo vps-gateway-configure`. After initialization, `sudo vps-gateway-add` offers a blueprint or `import-existing` for a project site config that is already written. For blueprints it asks for a hostname and port or document root. For import, enter the public hostname and an absolute path to a regular NGINX site config file; it must declare that exact `server_name`. The wizard previews the source and destination, copies the file unchanged without overwriting an existing site, runs `nginx -t`, and reloads NGINX. It leaves the project source file untouched and removes the new copy and symlink if validation or reload fails. Imported configs can reference their own snippets and certificates, which must already exist for `nginx -t` to pass. Review their listeners, upstreams, and logging policy before activation. TLS issuance is optional and requires working DNS. `vps-gateway-site-render` remains available for manual site generation. The original `vps-gateway` and `vps-gateway-site` subcommands remain available.
@@ -37,5 +41,9 @@ When this directory is copied elsewhere, run `sudo ./setup.sh --system` and `sud
 Uninstall removes the registered commands. It leaves distribution packages, NGINX service state, `/etc/nginx`, `/etc/letsencrypt`, project site files, and saved site backups untouched because other applications or rollback plans may depend on them. Package and site removal remains a deliberate operator task.
 
 Each application publishes its web service on a unique `127.0.0.1` port and owns its NGINX site file under `/etc/nginx/sites-available/` and the enabling symlink under `/etc/nginx/sites-enabled/`. The wizard installs the [HTTP core](configuration/core/http.conf.example) and [shared proxy headers](configuration/core/proxy-headers.conf.example); the [main NGINX config](configuration/core/nginx.conf.example) is an optional tuning reference. Use `vps-gateway-site render` for later [workload blueprints](docs/ROUTE_INTEGRATION.md) for Java, Python, WebSocket, plain HTML, SPA, or generic HTTP. See [operations](docs/OPERATIONS.md) and [design notes](docs/DESIGN_NOTES.md) for deployment and source rationale.
+
+Version hiding is set inside generated server blocks and the catch-all, so the
+shared HTTP core does not duplicate Debian/Ubuntu `server_tokens` settings.
+Imported project configurations own their server-level version policy.
 
 The module needs `apt-get`, `nginx`, and `systemctl` on the host and root privileges for `configure`. The focused test `bash src/modules/server-services/vps-gateway/tests/vps_gateway_test.sh` uses a temporary install root and mocked host commands.
