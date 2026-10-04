@@ -362,7 +362,7 @@ def _install(selected: list[str], registry: dict, bin_dir: Path, registry_path: 
         if not system:
             profile_notice = ensure_user_path(Path.home(), changes, bin_dir)
         atomic_json(registry_path, changes)
-    except Exception as error:
+    except BaseException as error:
         try:
             restore_files(snapshots)
         except OSError as rollback_error:
@@ -454,28 +454,43 @@ def _uninstall(
             if hook.get("root_env"):
                 environment[hook["root_env"]] = str(base)
             subprocess.run(hook_args, env=environment, check=True)
-        for name in removing:
-            record = entry["commands"][name]
-            target = Path(record["path"])
-            if target.is_file() and not target.is_symlink():
-                target.unlink()
-        for path in (entry.get("managed_cron_files", {}) if requested is None else {}):
-            target = Path(path)
-            if target.is_file() and not target.is_symlink():
-                target.unlink()
-        if requested is None or requested == installed_components(module, entry):
-            del registry["modules"][module]
-        else:
+        # Hooks can change host services; only managed files and registry are restored.
+        files = [Path(entry["commands"][name]["path"]) for name in removing]
+        if requested is None:
+            files.extend(Path(path) for path in entry.get("managed_cron_files", {}))
+        files.append(registry_path)
+        if not system and registry.get("profile_added"):
+            files.append(base / ".profile")
+        snapshots = {path: (path.read_bytes(), path.stat().st_mode & 0o777)
+                     if path.exists() else None for path in files}
+        try:
             for name in removing:
-                del entry["commands"][name]
-            entry["components"] = sorted(owned - requested)
-        registry["updated_at"] = datetime.now(timezone.utc).isoformat()
-        atomic_json(registry_path, registry)
+                record = entry["commands"][name]
+                target = Path(record["path"])
+                if target.is_file() and not target.is_symlink():
+                    target.unlink()
+            for path in (entry.get("managed_cron_files", {}) if requested is None else {}):
+                target = Path(path)
+                if target.is_file() and not target.is_symlink():
+                    target.unlink()
+            if requested is None or requested == installed_components(module, entry):
+                del registry["modules"][module]
+            else:
+                for name in removing:
+                    del entry["commands"][name]
+                entry["components"] = sorted(owned - requested)
+            registry["updated_at"] = datetime.now(timezone.utc).isoformat()
+            if not registry["modules"] and not system:
+                remove_profile_line(base, registry)
+            atomic_json(registry_path, registry)
+        except BaseException as error:
+            try:
+                restore_files(snapshots)
+            except OSError as rollback_error:
+                raise RuntimeError(f"Uninstall failed: {error}; rollback failed: {rollback_error}") from error
+            raise
         label = module if requested is None else ", ".join(f"{module}:{name}" for name in sorted(requested))
         print(f"Removed {label}")
-    if not registry["modules"] and not system:
-        remove_profile_line(base, registry)
-        atomic_json(registry_path, registry)
     print(f"Registry: {registry_path}")
 
 

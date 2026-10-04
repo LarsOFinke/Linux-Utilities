@@ -221,7 +221,7 @@ def install(bin_dir: Path, state_path: Path, root: Path, system: bool,
             atomic_json(state_path, {"id": NAME, "system": system, "commands": installed,
                                      "cron": installed_cron, "pre_remove": MANIFEST.get("pre_remove"),
                                      **({"components": sorted(names)} if MANIFEST.get("components") else {})})
-        except Exception:
+        except BaseException:
             for path, original in reversed(list(snapshots.items())):
                 restore_snapshot(path, original)
             raise
@@ -244,15 +244,23 @@ def uninstall(state_path: Path, state: dict, system: bool, force: bool, purge_co
     hook = hook_command(state, system, purge_config, root) if selected is None else None
     if hook:
         subprocess.run(hook[0], env=hook[1], check=True)
-    for record in records:
-        Path(record["path"]).unlink(missing_ok=True)
-    if selected is None or selected == owned:
-        state_path.unlink()
-    else:
-        for name in removing:
-            del state["commands"][name]
-        state["components"] = sorted(owned - selected)
-        atomic_json(state_path, state)
+    files = [Path(record["path"]) for record in records] + [state_path]
+    snapshots = {path: (path.read_bytes(), path.stat().st_mode & 0o777)
+                 if path.exists() else None for path in files}
+    try:
+        for record in records:
+            Path(record["path"]).unlink(missing_ok=True)
+        if selected is None or selected == owned:
+            state_path.unlink()
+        else:
+            for name in removing:
+                del state["commands"][name]
+            state["components"] = sorted(owned - selected)
+            atomic_json(state_path, state)
+    except BaseException:
+        for path, original in reversed(list(snapshots.items())):
+            restore_snapshot(path, original)
+        raise
     label = MANIFEST["display_name"] if selected is None else ", ".join(sorted(selected))
     print(f"Removed {label}")
 

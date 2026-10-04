@@ -3,6 +3,7 @@
 import json
 import os
 import subprocess
+from pathlib import Path
 
 from canary_state import (BIN, CONFIG, ROOT, UNITS, atomic_write, digest, fail,
                           name_path, owned_files, runtime_path, systemctl, verify_owned)
@@ -41,7 +42,7 @@ def configure(args):
         atomic_write(state, json.dumps(record, indent=2) + "\n", 0o600)
         systemctl("daemon-reload")
         systemctl("enable", "--now", unit.name)
-    except Exception:
+    except BaseException:
         if ROOT == Path("/"):
             subprocess.run(["systemctl", "disable", "--now", unit.name], check=False)
         state.unlink(missing_ok=True)

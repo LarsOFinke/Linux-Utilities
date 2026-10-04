@@ -31,3 +31,10 @@ VPS-Gateway can initialize its HTTP core, proxy headers, and catch-all without a
 Use the validation commands in the root README and avoid live host operations when testing. See `REPOSITORY_SPRING_CLEANING.md` for the structure and future change checklist.
 
 `log-scout` is a read-only prototype for bounded journal/text scans, category summaries, repeated-message groups, and cached examples. Its CLI composes pure scan/source/rule/view functions with `LogScoutCache.py`; schema-v1 snapshots remain private under the XDG cache directory. Unknown formats are refused, incomplete coverage is visible, and uninstall preserves cached results. Tests use synthetic logs and a real pseudo-terminal, not host logs.
+
+`python3 scripts/verify.py` runs the isolated syntax, ShellCheck, module, and
+installer suites; `.github/workflows/verify.yml` uses it for Python 3.9/3.14.
+`src/installation/tests/recovery_test.py` covers shared/portable Ctrl+C rollback
+and failed uninstall publication/deletion. Removal restores managed files and
+state per module, but does not reverse completed host removal-hook effects.
+Canary's `CanaryLifecycleTest.py` verifies failed/interrupted configuration cleanup.

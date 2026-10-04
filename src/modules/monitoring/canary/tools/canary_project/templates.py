@@ -1,1 +1,1 @@
-/** placeholder replaced by template package */
+"""Legacy placeholder; template loading lives in the adjacent templates package."""

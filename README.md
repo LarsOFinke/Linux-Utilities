@@ -94,28 +94,20 @@ For maintenance, start with the [project map](.agents/PROJECT_CACHE.md), follow 
 
 ## Verify
 
+Run the complete isolated suite from the repository root:
+
 ```bash
-find src -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
-find src -type f -name '*.sh' -print0 | xargs -0 shellcheck
-shellcheck setup.sh uninstall.sh
-bash src/modules/data-privacy/backup/tests/backup_home_test.sh
-bash src/modules/monitoring/network/tests/capture_traffic_test.sh
-bash src/modules/system-utilities/system/tests/h848_uninstall_test.sh
-python3 src/modules/system-utilities/termlay/tests/TermlayTest.py
-python3 src/modules/monitoring/log-scout/tests/LogScoutTest.py
-bash src/modules/server-services/system-update/tests/update_system_test.sh
-bash src/modules/data-privacy/privacy/tests/privacy_cleanup_test.sh
-bash src/modules/server-services/ubuntu-updates/tests/ubuntu_updates_test.sh
-bash src/modules/monitoring/canary/tests/integration_test.sh
-bash src/modules/monitoring/canary/tests/c_unit_test.sh
-bash src/modules/server-services/vps-gateway/tests/vps_gateway_test.sh
-PYTHONPATH=src/modules/monitoring/canary python3 -m unittest discover -s src/modules/monitoring/canary/tests -p '*Test*.py'
-bash src/installation/tests/setup_test.sh
-python3 src/installation/tests/orchestrator_ui_test.py
-python3 src/installation/tests/transaction_test.py
-python3 src/installation/tests/concurrency_test.py
-python3 src/installation/tests/portable_modules_test.py
-python3 src/installation/tests/component_test.py
-python3 src/installation/tests/registry_routing_test.py
-python3 src/installation/tests/remote_deploy_test.py
+python3 scripts/verify.py
 ```
+
+The runner checks Python 3.9 syntax, Bash syntax, ShellCheck, all module suites,
+installer recovery, concurrency, routing, SSH transport mocks, and standalone
+portability. It continues after failed checks and returns a nonzero exit status
+if any check fails. Tests use temporary homes/install roots and mocked host
+operations; they do not run live backups, capture, cleanup, or system services.
+
+Use a Debian/Ubuntu test environment with Python 3.9+, Bash, ShellCheck, a C
+compiler (`build-essential`), Git, GNU coreutils, tar, bzip2, util-linux (`flock`),
+and APT (`apt-config`). No Python packages are required for this suite. Individual
+module READMEs retain focused test commands. The GitHub Actions workflow runs the
+same runner on Ubuntu with Python 3.9 and 3.14 for pushes and pull requests.

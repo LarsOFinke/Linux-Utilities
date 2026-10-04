@@ -34,3 +34,15 @@ Run `python3 src/installation/tests/registry_routing_test.py` for direct and roo
 Run `python3 src/installation/tests/remote_deploy_test.py` for the SSH prototype and deployment record lifecycle.
 
 Registry mutations hold one scope lock across fresh reads, ownership checks, file changes, rollback, and publication. Shared installers, portable installers, and local SSH deployment records use the same scope lock. Lock files remain in place after uninstall. Profile cleanup refuses symbolic links before removing commands and publishes the edited profile atomically. Run `python3 src/installation/tests/concurrency_test.py` for overlapping-operation and profile safety checks.
+
+Recovery catches Python exceptions and Ctrl+C during installation and restores
+managed files and registry state. Uninstall restores the current module's command
+files, cron templates, registry, and final user-profile cleanup if deletion or
+state publication fails. Earlier successful module removals remain committed.
+Removal-hook changes to services, schedules, or policies are not rolled back;
+the restored commands allow removal to be retried. These are in-process recovery
+guarantees, not recovery after SIGKILL, power loss, or a second failure during
+rollback. Standalone installers provide equivalent command/state recovery.
+Run `python3 src/installation/tests/recovery_test.py` for injected interruption,
+file deletion, and registry publication failures, or `python3 scripts/verify.py`
+for the complete suite.

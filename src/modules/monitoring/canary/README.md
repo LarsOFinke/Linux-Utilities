@@ -28,3 +28,8 @@ The sensor marks the current inode. Replacing the watched file requires a servic
 
 For isolated lifecycle tests, set `SHELL_SCRIPTS_INSTALL_ROOT` to a temporary directory. No systemd command is run for a temporary root. Run `bash src/modules/monitoring/canary/tests/integration_test.sh` from this repository root.
 The C and Python tests are `bash src/modules/monitoring/canary/tests/c_unit_test.sh` and `PYTHONPATH=src/modules/monitoring/canary python3 -m unittest discover -s src/modules/monitoring/canary/tests -p '*Test*.py'`.
+
+Failed or interrupted service configuration removes the new unit, configuration,
+and ownership record so configuration can be retried; watched files and existing
+logs are preserved. `tests/CanaryLifecycleTest.py` injects service failures and
+Ctrl+C with mocked systemd operations to verify this recovery.
