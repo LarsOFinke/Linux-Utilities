@@ -11,7 +11,7 @@ def read_current_tab_titles() -> list[str]:
         gi.require_version("Atspi", "2.0")
         from gi.repository import Atspi
     except (ImportError, ValueError) as error:
-        raise TermlayError("save-current requires Python GObject and AT-SPI bindings") from error
+        raise TermlayError("interactive tab selection requires Python GObject and AT-SPI bindings") from error
 
     def descendants(item):
         for child in item:
@@ -25,7 +25,7 @@ def read_current_tab_titles() -> list[str]:
                    if window.get_role() == Atspi.Role.FRAME
                    and window.get_state_set().contains(Atspi.StateType.ACTIVE)]
         if len(windows) != 1:
-            raise TermlayError("focus the Ptyxis window to save, then run save-current in one of its tabs")
+            raise TermlayError("focus a Ptyxis window, then run termlay in one of its tabs")
         tab_lists = [[item for item in descendants(candidate)
                       if item.get_role() == Atspi.Role.PAGE_TAB]
                      for candidate in descendants(windows[0])

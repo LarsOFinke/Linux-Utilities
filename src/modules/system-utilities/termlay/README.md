@@ -1,49 +1,27 @@
 # Terminal layouts (`termlay`)
 
-Save a named, ordered set of working directories and reopen them as Ptyxis tabs:
+Termlay saves the working directories of selected tabs in the focused Ptyxis window. Its three commands run as interactive wizards in a terminal:
 
 ```bash
-termlay save work ~/dev/frontend ~/dev/backend
-termlay save-current work
+termlay save
 termlay update
-termlay open work
-termlay list
-termlay show work
-termlay delete work
+termlay delete
 ```
 
-`termlay save work .` saves the current directory. `termlay save-current work` discovers tabs in the focused Ptyxis window in their visible order. It reads standard shell titles, and for a uniquely matched local foreground process it reads that process's working directory, falling back to its owning shell. Matching follows executable symlinks and interpreter-launched scripts such as Codex. If a tab cannot be identified, it asks for that tab's directory; entering a blank line cancels without saving.
+`save` lists the current window's tabs. Select numbers separated by commas, `all`, or `q` to cancel, then enter a name for the new layout. Tabs are stored in their visible order, even if numbers are entered in another order. Existing names cannot be overwritten by `save`.
 
-`save-current` needs Python GObject and AT-SPI bindings plus a working desktop accessibility service. Paths are expanded, resolved to absolute directories, and checked when saved. `save` and `save-current` create new layouts and refuse to overwrite an existing name.
+`update` lists saved layouts, then current tabs. Select one layout and the tabs to use, review the resolved directories, and confirm replacement. `delete` lists saved layouts and requires confirmation before removing the selected ones. Layout and tab lists accept `q` to cancel; tab and delete lists also accept comma-separated numbers and `all`. A declined confirmation or cancelled tab selection leaves saved layouts unchanged.
 
-Use `termlay update` to interactively select saved layouts, confirm replacement, and refresh them from the focused Ptyxis window. Unclear tab directories use the same prompts as `save-current`; cancelling selection or tab discovery leaves selected layouts unchanged.
+Tab discovery reads the focused Ptyxis window through AT-SPI. Standard shell titles provide a directory directly. For a uniquely matched local foreground process, Termlay reads its working directory, falling back to its owning shell. Matching follows executable symlinks and interpreter-launched scripts such as Codex. If a selected tab cannot be identified, Termlay asks for its directory. An empty answer cancels the operation. Paths are expanded, resolved to absolute directories, and checked before saving.
 
-`open` checks **all** saved directories before starting Ptyxis and reports any that are missing. The short aliases are `s`, `o`, `ls`, and `rm`. Run `termlay --help` or `termlay --version` for CLI details.
+When several tabs run the same command, capture uses the workspace label in titles such as `Analyze this project | Linux-Utilities — node …/codex` to distinguish their directories. The label must match a directory belonging to a matching Ptyxis command. Ambiguous labels still require manual input. Shell titles with a running-command suffix retain their directory before the ` — ` separator.
 
 Layouts are JSON files at `$XDG_CONFIG_HOME/termlay/layouts/<name>.json`, or `~/.config/termlay/layouts/<name>.json` when `XDG_CONFIG_HOME` is unset. `XDG_CONFIG_HOME` must be absolute. The layout directory is private (mode 0700), cannot be a symbolic link, and new files use mode 0600. The versioned file records a name and an ordered `tabs` array with each tab's `cwd`.
 
-When several tabs run the same command, capture uses the workspace label in
-titles such as `Analyze this project | Linux-Utilities — node …/codex` to
-distinguish their working directories. The label must match a directory belonging
-to a matching Ptyxis command; an unrelated shell directory is not sufficient.
-Ambiguous labels still require manual input. Shell titles with a running-command
-suffix retain their directory before the ` — ` separator.
+Install with `./setup.sh --module termlay` from the repository root, or run this module's `setup.sh` directly. The default install puts `termlay` and its Python helpers in `~/.local/bin`; `--system` is available for a shared command. Python 3.9 or newer, Python GObject and AT-SPI bindings, and a working desktop accessibility service are required at runtime. Installed commands work from any working directory.
 
-When run interactively in a Ptyxis tab, `open` reuses that tab for the first saved
-directory and creates new tabs only for the remaining directories. A one-directory
-layout therefore creates no extra tab. The reused tab starts a fresh interactive
-`$SHELL` (or `/bin/sh` when unset); exiting it returns to the shell that launched
-Termlay. Other existing tabs remain open. Tab reuse requires `PTYXIS_VERSION`,
-terminal input/output, and a foreground process; SSH, tmux, and screen sessions
-use new tabs instead. `termlay open work --new-tabs` explicitly opens every entry
-in a new tab, as do noninteractive calls or calls from another terminal emulator.
+Termlay captures only the focused Ptyxis window. It stores working directories, not commands, shell state, terminal window placement, or a way to reopen a layout. Remove the command with `./uninstall.sh --module termlay` or this module's `uninstall.sh`. Saved layouts are user data and remain on disk.
 
-Install with `./setup.sh --module termlay` from the repository root, or run this module's `setup.sh` directly. The default install puts `termlay` and its Python helpers in `~/.local/bin`; `--system` is available for a shared command. Python 3.9 or newer is required for setup and runtime. Ptyxis must be installed and available on `PATH` for `open`; saving explicit directories and inspecting layouts do not need it. The backend invokes the supported `ptyxis --tab --working-directory DIR` CLI for each new tab, in order. If Ptyxis is not already running, its `--tab` option starts an instance. Installed commands work from any working directory.
+The scripts keep each class in its own PascalCase file. `scripts/layout/` owns layout data, storage, and path validation; `scripts/ptyxis/` owns tab discovery, process lookup, and capture prompts. The manifest installs their helpers beside `termlay`.
 
-`termlay` stores and reopens directories. `save-current` discovers tabs only in the focused Ptyxis window; it does not inspect other windows. Commands, shell state, and terminal window placement are not saved. An `open` operation can leave earlier tabs open if Ptyxis fails on a later tab. The origin tab's shell starts only after all requested new tabs have opened successfully; a failure leaves the calling shell available.
-
-Remove the command with `./uninstall.sh --module termlay` or this module's `uninstall.sh`. Saved layouts are user data and remain on disk.
-
-The scripts keep each class in its own PascalCase file. `scripts/layout/` owns layout data, storage, and path validation; `scripts/ptyxis/` owns tab discovery, process lookup, capture prompts, and opening tabs. The manifest installs their helpers beside `termlay` so the command works from any directory.
-
-Run `python3 src/modules/system-utilities/termlay/tests/TermlayTest.py` for focused CLI and storage tests. Tests use fake Ptyxis/shell executables, a temporary home, and a real pseudo-terminal to check tab reuse; they do not open terminal windows.
+Run `python3 src/modules/system-utilities/termlay/tests/TermlayTest.py` for focused CLI and storage tests. Tests use temporary storage and mock tab discovery; they do not open terminal windows.

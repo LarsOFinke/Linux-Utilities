@@ -6,7 +6,6 @@ import os
 import re
 from pathlib import Path
 
-from Layout import Layout
 from TermlayError import TermlayError
 
 NAME_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*\Z")
@@ -28,13 +27,6 @@ def config_directory() -> Path:
     return base / "termlay" / "layouts"
 
 
-def layout_from_paths(name: str, paths: list[str]) -> Layout:
-    validate_name(name)
-    if not paths:
-        raise TermlayError("save requires at least one directory")
-    return Layout(name, tuple(resolve_directory(raw) for raw in paths))
-
-
 def resolve_directory(raw: str) -> Path:
     try:
         directory = Path(raw).expanduser().resolve()
@@ -43,7 +35,3 @@ def resolve_directory(raw: str) -> Path:
     if not directory.is_dir():
         raise TermlayError(f"not an existing directory: {raw}")
     return directory
-
-
-def missing_directories(layout: Layout) -> list[Path]:
-    return [directory for directory in layout.directories if not directory.is_dir()]

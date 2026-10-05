@@ -18,10 +18,12 @@ def directory_from_title(title: str) -> str | None:
     return match.group(1) if match else None
 
 
-def current_layout(name: str) -> Layout:
+def current_layout(name: str, titles: list[str] | None = None) -> Layout:
     validate_name(name)
     directories = []
-    for index, title in enumerate(read_current_tab_titles(), 1):
+    if titles is None:
+        titles = read_current_tab_titles()
+    for index, title in enumerate(titles, 1):
         directory = directory_from_title(title) or foreground_directory(title)
         while True:
             if directory is not None:
@@ -32,11 +34,11 @@ def current_layout(name: str) -> Layout:
                     directory = None
             try:
                 directory = input(f"Directory for tab {index} {title!r} (blank cancels): ").strip()
-            except EOFError as error:
-                raise TermlayError(f"cannot determine directory for tab {index}; no layout saved") from error
+            except (EOFError, KeyboardInterrupt) as error:
+                raise TermlayError(f"cannot determine directory for tab {index}; layout unchanged") from error
             if not directory:
-                raise TermlayError(f"directory for tab {index} was not provided; no layout saved")
+                raise TermlayError(f"directory for tab {index} was not provided; layout unchanged")
         directories.append(resolved)
     if not directories:
-        raise TermlayError("no Ptyxis tabs found; no layout saved")
+        raise TermlayError("no Ptyxis tabs found; layout unchanged")
     return Layout(name, tuple(directories))
