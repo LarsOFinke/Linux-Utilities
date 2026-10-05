@@ -1,0 +1,60 @@
+#!/usr/bin/env python3
+"""Select a saved VPS for SSH, or manage saved connections interactively."""
+
+from __future__ import annotations
+
+import argparse
+import sqlite3
+import sys
+
+from ConnectionStore import ConnectionStore
+from ConnectVpsError import ConnectVpsError
+from connection_prompts import ask, prompt_connection, select
+from ssh_connection import connect
+
+
+def parser() -> argparse.ArgumentParser:
+    result = argparse.ArgumentParser(prog="connect-vps", description=__doc__)
+    result.add_argument("command", nargs="?", choices=("add", "update", "delete"),
+                        help="manage saved VPS connections; omit to connect")
+    return result
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parser().parse_args(argv)
+    if not sys.stdin.isatty():
+        raise ConnectVpsError("connect-vps requires an interactive terminal")
+    with ConnectionStore() as store:
+        if args.command == "add":
+            item = prompt_connection()
+            store.add(item)
+            print(f"Saved '{item.name}'")
+        else:
+            item = select(store.list())
+            if item is None:
+                print("Cancelled")
+                return 0
+            if args.command == "update":
+                changed = prompt_connection(item)
+                store.update(changed)
+                print(f"Updated '{changed.name}'")
+            elif args.command == "delete":
+                if ask(f"Delete '{item.name}'? [y/N] ").lower() in {"y", "yes"}:
+                    store.delete(item)
+                    print(f"Deleted '{item.name}'")
+                else:
+                    print("Cancelled")
+            else:
+                return connect(item)
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        print("\nconnect-vps: interrupted", file=sys.stderr)
+        sys.exit(130)
+    except (ConnectVpsError, OSError, sqlite3.DatabaseError) as error:
+        print(f"connect-vps: {error}", file=sys.stderr)
+        sys.exit(1)

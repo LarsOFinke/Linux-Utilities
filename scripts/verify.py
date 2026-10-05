@@ -37,6 +37,7 @@ def main() -> int:
     commands.extend((str(path), [sys.executable, str(path)])
                     for path in sorted(Path("src/installation/tests").glob("*_test.py")))
     for path in ("src/modules/system-utilities/termlay/tests/TermlayTest.py",
+                 "src/modules/system-utilities/connect-vps/tests/ConnectVpsTest.py",
                  "src/modules/monitoring/log-scout/tests/LogScoutTest.py"):
         commands.append((path, [sys.executable, path]))
     commands.append(("Canary Python", [sys.executable, "-m", "unittest", "discover", "-s",

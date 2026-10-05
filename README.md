@@ -13,6 +13,7 @@ Setup, update, and uninstall require Python 3.9 or newer. Runtime requirements a
 ./setup.sh --ssh my-server --component system:amd-gaming
 ./setup.sh --module system-update
 ./setup.sh --module termlay
+./setup.sh --module connect-vps
 ./setup.sh --module log-scout
 ./setup.sh --component system:h848-audio
 sudo ./setup.sh --system --all
@@ -59,6 +60,7 @@ Installed commands:
 | Monitoring / File events | Canary file monitoring (`canary`) | `fs-tracker`, `canary-configure`, `canary-status`, `canary-start`, `canary-stop`, `canary-remove`, `canary-remove-all` (system install) |
 | System utilities / Workstation setup | System utilities (`system`) | `install-amd-gaming`, `install-h848-audio-fix`, `uninstall-h848-audio-fix` |
 | System utilities / Terminal workflow | Terminal layouts (`termlay`) | `termlay` |
+| System utilities / Remote access | Saved VPS connections (`connect-vps`) | `connect-vps` |
 | Server services / Package maintenance | Manual APT updates (`system-update`) | `update-system` |
 | Server services / Package maintenance | Ubuntu automatic updates (`ubuntu-updates`) | `ubuntu-updates-configure`, `ubuntu-updates-status`, `ubuntu-updates-logs`, `ubuntu-updates-dry-run`, `ubuntu-updates-run`, `ubuntu-updates-restore` (system install) |
 | Server services / Web gateway | NGINX and Certbot setup (`vps-gateway`) | `vps-gateway-configure`, `vps-gateway-status`, `vps-gateway-init`, `vps-gateway-add`, `vps-gateway-site-list`, `vps-gateway-site-render`, `vps-gateway-site-import` (system install) |
@@ -72,6 +74,8 @@ The previous multi-command entry points (`privacy-cleanup`, `ubuntu-updates`, `c
 `vps-gateway` is system-scope. Run `sudo vps-gateway-init --empty` to install the core and catch-all without a first project site; the interactive initializer also offers this choice. Project installers can then import their own routes with `sudo vps-gateway-site-import --host NAME --file PATH` or stream them through standard input with `--file -`. Run `sudo vps-gateway-add` for interactive site creation. `sudo vps-gateway-configure` remains package-only. See the [VPS gateway guide](src/modules/server-services/vps-gateway/README.md).
 
 `termlay save` selects tabs from the focused Ptyxis window and names a new layout, `termlay update` selects a layout and replacement tabs, and `termlay delete` selects layouts for removal. `termlay list` (or `termlay ls`) prints saved names. Layouts store working directories under the XDG configuration directory. See the [terminal layouts guide](src/modules/system-utilities/termlay/README.md) for storage and limitations.
+
+`connect-vps` selects a saved IP address and opens SSH. Use `connect-vps add`, `connect-vps update`, and `connect-vps delete` to manage entries interactively. SSH key or agent authentication is the default; password entries let SSH prompt when connecting. The private SQLite registry stores connection settings but no passwords or keys. See the [VPS connection guide](src/modules/system-utilities/connect-vps/README.md).
 
 `log-scout` scans recent journal entries or selected text logs, summarizes warning/error
 categories, and lets you drill into repeated-message groups and representative examples.
@@ -90,7 +94,7 @@ src/
   modules/
     data-privacy/    backup/, privacy/
     monitoring/      network/, canary/, log-scout/
-    system-utilities/ system/ and termlay/
+    system-utilities/ system/, termlay/, and connect-vps/
     server-services/ system-update/, ubuntu-updates/, vps-gateway/
 .agents/          compact agent project map, qualities, debugging, cache
 ```

@@ -11,6 +11,7 @@ Read this compact map first, then the relevant module README. Root setup, update
 | Monitoring | `canary` | `src/modules/monitoring/canary/` | `tests/integration_test.sh`, `tests/*Test*.py` |
 | System utilities | `system` | `src/modules/system-utilities/system/` | `tests/h848_uninstall_test.sh` |
 | System utilities | `termlay` | `src/modules/system-utilities/termlay/` | `tests/TermlayTest.py` |
+| System utilities | `connect-vps` | `src/modules/system-utilities/connect-vps/` | `tests/ConnectVpsTest.py` |
 | Server services | `system-update` | `src/modules/server-services/system-update/` | `tests/update_system_test.sh` |
 | Server services | `ubuntu-updates` | `src/modules/server-services/ubuntu-updates/` | `tests/ubuntu_updates_test.sh` |
 | Server services | `vps-gateway` | `src/modules/server-services/vps-gateway/` | `tests/vps_gateway_test.sh` |
@@ -23,6 +24,8 @@ Shared installs, portable installs, and local remote-deployment records serializ
 
 `termlay` exposes `save`, `update`, `delete`, and `list` (`ls`). The first three require an interactive terminal; `list` prints sorted saved names without prompting. Save selects tabs from the focused Ptyxis window and prompts for a new name; update selects one saved layout and replacement tabs; delete selects saved layouts and confirms removal. Capture reads tabs through AT-SPI, resolves standard shell titles and uniquely matched local foreground processes, and prompts for any remaining tab directory. It strips running-command suffixes from shell titles. Identical foreground commands can be distinguished by a matching workspace label (`task | workspace`) among their Ptyxis-owned working directories; unmatched or ambiguous labels retain manual fallback. Layouts record directories but Termlay no longer reopens them.
 Its `scripts/layout/` and `scripts/ptyxis/` directories split storage from terminal integration. Each class has a PascalCase file; function modules keep path validation, accessibility reading, process lookup, and capture flow separate.
+
+`connect-vps` is an interactive SSH picker installable in user or system scope. Each caller has a separate SQLite database. `add`, `update`, and `delete` manage named IP addresses in `$XDG_DATA_HOME/connect-vps/connections.sqlite3`; no subcommand selects and connects. Key authentication defaults to OpenSSH identities/agent when the private key path is blank. Password mode delegates the prompt to SSH and stores no secret. The module uses private 0700/0600 storage and preserves the database on uninstall.
 
 The root wrapper also accepts `--ssh TARGET` for module and component setup/removal. It sends a portable module bundle, records successful remote deployments in the local user registry, and scans the target's portable state for selection and status. Remote removal still runs the module's portable hash checks. Network capture accepts named profiles plus port and IPv4 subnet filters; its module-owned capture registry records settings and checks whether the recorded PID is active.
 

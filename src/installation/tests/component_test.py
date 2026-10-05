@@ -60,11 +60,19 @@ def main() -> None:
         binary = home / ".local/bin"
         registry = home / ".local/state/shell-scripts/registry.json"
 
-        output = interactive(REPOSITORY / "setup.sh", b"4\n1\n1\n", environment)
+        catalog = json.loads((REPOSITORY / "configuration/install.json").read_text(encoding="utf-8"))["modules"]
+        system_modules = sorted(
+            name for name, manifest in catalog.items()
+            if json.loads((REPOSITORY / manifest).read_text(encoding="utf-8"))["category"]
+            == "System utilities"
+        )
+        system_choice = system_modules.index("system") + 1
+
+        output = interactive(REPOSITORY / "setup.sh", f"4\n{system_choice}\n1\n".encode(), environment)
         assert "Categories:" in output and "System utilities modules:" in output
-        assert "1. system" in output and "1. amd-gaming" in output
+        assert f"{system_choice}. system" in output and "1. amd-gaming" in output
         assert set(records(registry)["system"]["commands"]) == {"install-amd-gaming"}
-        output = interactive(REPOSITORY / "setup.sh", b"4\n1\n1\n", environment)
+        output = interactive(REPOSITORY / "setup.sh", f"4\n{system_choice}\n1\n".encode(), environment)
         assert "1. h848-audio" in output and "amd-gaming —" not in output
         assert "install-h848-audio-fix" in records(registry)["system"]["commands"]
         output = interactive(REPOSITORY / "uninstall.sh", b"1\n1\n1\n", environment)

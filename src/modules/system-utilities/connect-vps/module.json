@@ -1,0 +1,28 @@
+{
+  "display_name": "Saved VPS connections",
+  "category": "System utilities",
+  "subcategory": "Remote access",
+  "description": "interactive SSH connections from a private SQLite registry",
+  "schema_version": 1,
+  "id": "connect-vps",
+  "setup": "setup.sh",
+  "documentation": "README.md",
+  "commands": {
+    "connect-vps": "scripts/connect-vps",
+    "Connection.py": "scripts/Connection.py",
+    "ConnectionStore.py": "scripts/ConnectionStore.py",
+    "ConnectVpsError.py": "scripts/ConnectVpsError.py",
+    "connection_prompts.py": "scripts/connection_prompts.py",
+    "ssh_connection.py": "scripts/ssh_connection.py"
+  },
+  "non_executable_commands": [
+    "Connection.py",
+    "ConnectionStore.py",
+    "ConnectVpsError.py",
+    "connection_prompts.py",
+    "ssh_connection.py"
+  ],
+  "examples": [],
+  "cron_templates": [],
+  "scopes": ["user", "system"]
+}

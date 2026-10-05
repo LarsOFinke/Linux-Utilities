@@ -15,6 +15,7 @@
     "network": "src/modules/monitoring/network/module.json",
     "system": "src/modules/system-utilities/system/module.json",
     "termlay": "src/modules/system-utilities/termlay/module.json",
+    "connect-vps": "src/modules/system-utilities/connect-vps/module.json",
     "system-update": "src/modules/server-services/system-update/module.json",
     "privacy": "src/modules/data-privacy/privacy/module.json",
     "canary": "src/modules/monitoring/canary/module.json",
