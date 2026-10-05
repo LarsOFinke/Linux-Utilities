@@ -1,6 +1,6 @@
 # Project cache
 
-Read this compact map first, then the relevant module README. The root setup and uninstall scripts are a wrapper over independent modules.
+Read this compact map first, then the relevant module README. Root setup, update, and uninstall wrap independent modules.
 
 | Concern | Module ID | Source | Focused test |
 | --- | --- | --- | --- |
@@ -15,13 +15,14 @@ Read this compact map first, then the relevant module README. The root setup and
 | Server services | `ubuntu-updates` | `src/modules/server-services/ubuntu-updates/` | `tests/ubuntu_updates_test.sh` |
 | Server services | `vps-gateway` | `src/modules/server-services/vps-gateway/` | `tests/vps_gateway_test.sh` |
 
-`configuration/install.json` maps stable IDs to manifests. Manifests own categories, subcategories, commands, scopes, and hooks. `src/installation/` owns catalog validation, shared registry transactions, and interactive selection; its tests cover routing, components, and copied module portability. The `system` module has independently selectable `amd-gaming` and `h848-audio` components. Manual `update-system` belongs to `system-update`; shared registries with the old `system:update` entry migrate on read.
+`configuration/install.json` maps stable IDs to manifests. Manifests own categories, subcategories, commands, scopes, and hooks. `setup.sh`, `uninstall.sh`, and `update.sh` are separate lifecycle wrappers. The update workflow refreshes only registered modules and installed components, rebuilds generated commands, and verifies installed hashes; it does not rerun setup prompts or module configuration. `src/installation/` owns catalog validation, shared registry transactions, and interactive selection; its tests cover routing, components, and copied module portability. The `system` module has independently selectable `amd-gaming` and `h848-audio` components. Manual `update-system` belongs to `system-update`; shared registries with the old `system:update` entry migrate on read.
 
 Each module directory can be copied out and installed without the repository using its synchronized `portable_module.py`. Shared and portable registries are distinct. Both track installed command ownership; root uninstall checks the user and system shared registries and installed files. Generated state stays outside Git.
 
 Shared installs, portable installs, and local remote-deployment records serialize mutations through the same per-scope registry lock. Capture rotation, stop, and list serialize through one capture-registry lock across profiles. Installer concurrency and profile-symlink rejection are covered by `src/installation/tests/concurrency_test.py`.
 
 `termlay save-current NAME` reads the focused Ptyxis window through AT-SPI, resolves standard shell titles and uniquely matched local foreground processes, and prompts for any remaining tab directory before saving the complete layout.
+Capture strips running-command suffixes from shell titles. Identical foreground commands can be distinguished by a matching workspace label (`task | workspace`) among their Ptyxis-owned working directories. Live capture has been checked with concurrent Codex sessions; unmatched or ambiguous labels retain manual fallback.
 `termlay open NAME` reuses an interactive foreground Ptyxis terminal for the first directory by starting its shell there, then needs new tabs only for the remaining entries. Exiting the reused shell returns to its caller. `--new-tabs`, noninteractive calls, SSH, tmux, and screen retain all-new-tab behavior. Tests exercise reuse through a real pseudo-terminal with fake shell/Ptyxis executables.
 Its `scripts/layout/` and `scripts/ptyxis/` directories split storage from terminal integration. Each class has a PascalCase file; function modules keep path validation, accessibility reading, process lookup, and capture flow separate.
 
@@ -39,3 +40,5 @@ installer suites; `.github/workflows/verify.yml` uses it for Python 3.9/3.14.
 and failed uninstall publication/deletion. Removal restores managed files and
 state per module, but does not reverse completed host removal-hook effects.
 Canary's `CanaryLifecycleTest.py` verifies failed/interrupted configuration cleanup.
+
+`installed_selection.py` shares update/uninstall scope discovery and selectors. Explicit user updates avoid system-registry reads. SSH updates use portable `update` under the scope lock and refuse missing installations. `tests/update_test.py` covers update ownership and component preservation.

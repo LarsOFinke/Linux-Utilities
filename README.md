@@ -2,9 +2,9 @@
 
 Independent Linux utilities organized by concern under `src/modules/`. The root setup asks for category, module, then sub-module when needed, and installs selected modules as one batch. Each module also has its own setup and uninstall scripts. The stable module IDs are used in commands and registries; display names and categories help people find the right tool.
 
-Setup and uninstall require Python 3.9 or newer. Runtime requirements are listed in each module README.
+Setup, update, and uninstall require Python 3.9 or newer. Runtime requirements are listed in each module README.
 
-## Install and remove
+## Install, update, and remove
 
 ```bash
 ./setup.sh                         # interactive user install
@@ -17,6 +17,11 @@ Setup and uninstall require Python 3.9 or newer. Runtime requirements are listed
 ./setup.sh --component system:h848-audio
 sudo ./setup.sh --system --all
 ./setup.sh --list
+./update.sh                         # interactively refresh installed modules
+./update.sh --module termlay
+./update.sh --component system:amd-gaming
+sudo ./update.sh --system --all
+./update.sh --ssh my-server --module network
 src/modules/data-privacy/privacy/setup.sh              # direct setup of one module
 src/modules/data-privacy/privacy/uninstall.sh          # direct removal of one module
 ./uninstall.sh                     # interactive module selection
@@ -27,9 +32,11 @@ src/modules/data-privacy/privacy/uninstall.sh          # direct removal of one m
 ./uninstall.sh --module system-update
 ```
 
+`update.sh` is separate from setup and uninstall. It refreshes only modules already recorded in the selected scope, and component updates are limited to components already installed. It rebuilds generated commands and updates each installed command from this checkout. The registry verifies installed hashes before replacement, so a locally edited command stops the update for that batch. Updates do not repeat setup prompts or run module configuration workflows. `--list` shows registered modules and installed-file issues, plus local command sources whose recorded hash changed or is missing; `--ssh TARGET` refreshes portable installs on the remote host.
+
 You can run any `src/modules/<category>/<module>/setup.sh` or `uninstall.sh` directly. Within this checkout, they use the shared registry and transaction manager. A copied module directory uses its own `module.json` and portable installer with a separate registry under `shell-scripts/portable/`. Its installed commands work without the repository; use the full path to `~/.local/bin` if that directory is not on PATH. Privacy's repository setup offers to configure retention when run in a terminal; `--no-configure` skips that prompt. Scripted root installs stay noninteractive.
 
-The root selector installs all selected modules in one transaction for one scope. The `ubuntu-updates`, `canary`, and `vps-gateway` modules require system scope; combine them with other modules using `--system`, or install them separately. An install failure restores the previously installed files and registry. Reinstall removes obsolete managed commands and cron templates when their installed copies are unchanged; locally edited copies block the reinstall.
+The root selector installs all selected modules in one transaction for one scope. The `ubuntu-updates`, `canary`, and `vps-gateway` modules require system scope; combine them with other modules using `--system`, or install them separately. An install failure restores the previously installed files and registry. Reinstall removes obsolete managed commands and cron templates when their installed copies are unchanged; locally edited copies block the reinstall. Use `update.sh` to refresh an existing selection without setup prompts.
 
 For a small SSH deployment, pass `--ssh TARGET` with the same module or component selection options. The wrapper sends each selected module directory to the target and runs that module's portable setup there. Successful deployments are recorded under `remote_deployments` in the local user registry; `./uninstall.sh --ssh TARGET --list` also scans the target's portable registry and flags differences. `--module` or `--component` removes a selection using the target's own hash checks. A failed remote operation leaves the local deployment record in place. SSH deployment needs Git and SSH locally and Python 3.9 or newer on the target. Remote system installs require noninteractive sudo access on the target; modules are deployed one at a time, so a multi-module SSH selection is not one remote transaction.
 
@@ -64,7 +71,7 @@ The previous multi-command entry points (`privacy-cleanup`, `ubuntu-updates`, `c
 
 `vps-gateway` is system-scope. Run `sudo vps-gateway-init --empty` to install the core and catch-all without a first project site; the interactive initializer also offers this choice. Project installers can then import their own routes with `sudo vps-gateway-site-import --host NAME --file PATH` or stream them through standard input with `--file -`. Run `sudo vps-gateway-add` for interactive site creation. `sudo vps-gateway-configure` remains package-only. See the [VPS gateway guide](src/modules/server-services/vps-gateway/README.md).
 
-`termlay` saves named directories under the XDG configuration directory and opens them as Ptyxis tabs. Run `termlay save-current work` in a Ptyxis window to discover its tabs, or `termlay save work ~/dev/frontend ~/dev/backend` to enter directories manually; then run `termlay open work`. Interactive opening reuses the origin tab for the first directory, avoiding an extra tab; `--new-tabs` opens every entry in a new tab. See the [terminal layouts guide](src/modules/system-utilities/termlay/README.md) for storage, commands, and limitations.
+`termlay` saves named directories under the XDG configuration directory and opens them as Ptyxis tabs. `termlay update` selects and confirms replacement of saved layouts using the current window; `save` and `save-current` only create new layouts. Run `termlay save-current work` in a Ptyxis window to discover its tabs, or `termlay save work ~/dev/frontend ~/dev/backend` to enter directories manually; then run `termlay open work`. Interactive opening reuses the origin tab for the first directory, avoiding an extra tab; `--new-tabs` opens every entry in a new tab. See the [terminal layouts guide](src/modules/system-utilities/termlay/README.md) for storage, commands, and limitations.
 
 `log-scout` scans recent journal entries or selected text logs, summarizes warning/error
 categories, and lets you drill into repeated-message groups and representative examples.
@@ -76,7 +83,7 @@ failures are shown in each summary. See the [log triage guide](src/modules/monit
 ## Layout
 
 ```text
-setup.sh, uninstall.sh, README.md
+setup.sh, update.sh, uninstall.sh, README.md
 configuration/   shared installation catalog and its documentation
 src/
   installation/   registry-based setup/uninstall logic and tests

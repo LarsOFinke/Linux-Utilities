@@ -14,7 +14,7 @@ SHELL_TITLE = re.compile(r"[^@\s:]+@[^:\s]+: (~/.*|/.*|~)\Z")
 
 
 def directory_from_title(title: str) -> str | None:
-    match = SHELL_TITLE.fullmatch(title)
+    match = SHELL_TITLE.fullmatch(title.rsplit(" — ", 1)[0])
     return match.group(1) if match else None
 
 

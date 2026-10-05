@@ -133,6 +133,7 @@ def registry_inventory(registry: dict) -> dict[str, dict]:
                        if name in installed_components(module, entry)]
                       if module in MODULES and MODULES[module]["components"] else None)
         issues = []
+        updates = []
         files = [(f"command {name}", Path(record["path"]), record["sha256"])
                  for name, record in entry["commands"].items()]
         files.extend((f"cron {path}", Path(path), record["sha256"])
@@ -146,7 +147,16 @@ def registry_inventory(registry: dict) -> dict[str, dict]:
                         issues.append(f"{label} was modified")
                 except OSError as error:
                     issues.append(f"{label} cannot be read: {error}")
-        inventory[module] = {"components": components, "issues": issues}
+        definition = MODULES.get(module)
+        if definition:
+            for name, record in entry["commands"].items():
+                source_relative = definition["commands"].get(name)
+                if not source_relative:
+                    continue
+                source = REPOSITORY / source_relative
+                if source.is_file() and record.get("source_sha256") != sha256(source):
+                    updates.append(name)
+        inventory[module] = {"components": components, "issues": issues, "updates": updates}
     return inventory
 
 
@@ -223,9 +233,41 @@ def install(selected: list[str], registry: dict, bin_dir: Path, registry_path: P
         _install(selected, current, bin_dir, registry_path, system, built, components)
 
 
+def update(selected: list[str], bin_dir: Path, registry_path: Path, system: bool,
+           components: dict[str, set[str] | None] | None = None) -> None:
+    """Refresh installed commands from this checkout without adding modules/components."""
+    with registry_lock(registry_path):
+        current = read_registry(registry_path, "system" if system else "user", bin_dir)
+        missing = set(selected) - current["modules"].keys()
+        if missing:
+            raise RuntimeError(f"Modules are not installed in this scope: {', '.join(sorted(missing))}")
+        requested = copy.deepcopy(components or {})
+        for module in selected:
+            if module not in MODULES:
+                raise RuntimeError(f"Module is no longer available in this checkout: {module}")
+            definition = MODULES[module]
+            entry = current["modules"][module]
+            if definition["components"]:
+                installed = installed_components(module, entry)
+                selected_components = requested.get(module)
+                if selected_components is None:
+                    requested[module] = installed
+                elif not selected_components <= installed:
+                    raise RuntimeError(
+                        f"Components are not installed for {module}: "
+                        f"{', '.join(sorted(selected_components - installed))}"
+                    )
+                if not requested[module]:
+                    raise RuntimeError(f"No installed components selected for update: {module}")
+        with tempfile.TemporaryDirectory(prefix="linux-utilities-update-") as directory:
+            built = build_commands(selected, Path(directory), requested)
+            _install(selected, current, bin_dir, registry_path, system, built, requested, updating=True)
+
+
 def _install(selected: list[str], registry: dict, bin_dir: Path, registry_path: Path, system: bool,
             built: dict[tuple[str, str], Path] | None = None,
-            components: dict[str, set[str] | None] | None = None) -> None:
+            components: dict[str, set[str] | None] | None = None,
+            updating: bool = False) -> None:
     changes = copy.deepcopy(registry)
     desired: dict[str, tuple[set[str], set[str] | None]] = {}
     writing: dict[str, set[str]] = {}
@@ -331,7 +373,9 @@ def _install(selected: list[str], registry: dict, bin_dir: Path, registry_path: 
                 source = (built or {}).get((module, name), REPOSITORY / source_relative)
                 target = bin_dir / name
                 copy_command(source, target, name not in definition.get("non_executable_commands", []))
-                commands[name] = {"path": str(target), "source": str(REPOSITORY / source_relative), "sha256": sha256(target)}
+                source = REPOSITORY / source_relative
+                commands[name] = {"path": str(target), "source": str(source),
+                                  "sha256": sha256(target), "source_sha256": sha256(source)}
             managed_cron_files = {}
             if system and "system_cron" in definition:
                 cron = definition["system_cron"]
@@ -359,7 +403,7 @@ def _install(selected: list[str], registry: dict, bin_dir: Path, registry_path: 
             target.unlink(missing_ok=True)
         changes["repository"] = str(REPOSITORY)
         changes["updated_at"] = datetime.now(timezone.utc).isoformat()
-        if not system:
+        if not system and not updating:
             profile_notice = ensure_user_path(Path.home(), changes, bin_dir)
         atomic_json(registry_path, changes)
     except BaseException as error:
@@ -370,9 +414,10 @@ def _install(selected: list[str], registry: dict, bin_dir: Path, registry_path: 
         raise
     if profile_notice is not None:
         print(f"Open a new shell or run: source {profile_notice}")
+    verb = "Updated" if updating else "Installed"
     for module in selected:
         definition = MODULES[module]
-        print(f"Installed {module}: {', '.join(name for name in definition['commands'] if name in writing[module] and name not in definition.get('non_executable_commands', []))}")
+        print(f"{verb} {module}: {', '.join(name for name in definition['commands'] if name in writing[module] and name not in definition.get('non_executable_commands', []))}")
     print(f"Registry: {registry_path}")
 
 
@@ -496,7 +541,7 @@ def _uninstall(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=["install", "uninstall"])
+    parser.add_argument("action", choices=["install", "update", "uninstall"])
     parser.add_argument("--system", action="store_true", help="Use /usr/local/bin and the system registry")
     parser.add_argument("--module", action="append", default=[], help="Select a module by name; repeatable")
     parser.add_argument("--component", action="append", default=[], metavar="MODULE:NAME",
@@ -515,7 +560,7 @@ def main() -> int:
                              for module in available if module in MODULES and MODULES[module]["components"]})
     if args.list:
         if args.json:
-            print(json.dumps(registry_inventory(registry) if args.action == "uninstall" else {}))
+            print(json.dumps(registry_inventory(registry) if args.action in ("uninstall", "update") else {}))
             return 0
         print("\n".join(selection_options(available, available_components)))
         return 0
@@ -528,6 +573,8 @@ def main() -> int:
         with tempfile.TemporaryDirectory(prefix="linux-utilities-build-") as directory:
             built = build_commands(selected, Path(directory), selection)
             install(selected, registry, bin_dir, registry_path, args.system, built, selection)
+    elif args.action == "update":
+        update(selected, bin_dir, registry_path, args.system, selection)
     else:
         uninstall(selected, registry, registry_path, args.system, base, args.force, args.purge_config, selection)
     return 0

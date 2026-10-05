@@ -58,6 +58,16 @@ def main() -> None:
         assert not record["modules"]
         assert set(record["remote_deployments"]["demo"]["user"]) == {"system-update", "system", "network"}
         assert record["remote_deployments"]["demo"]["user"]["system"]["components"] == ["amd-gaming"]
+        run([REPOSITORY / "update.sh", "--ssh", "demo", "--module", "system"], environment)
+        assert not (remote_bin / "install-h848-audio-fix").exists()
+        state_path = remote / ".local/state/shell-scripts/portable/system.json"
+        state_bytes = state_path.read_bytes()
+        state_path.unlink()
+        failed = run([REPOSITORY / "update.sh", "--ssh", "demo", "--module", "system"],
+                     environment, success=False)
+        assert failed.returncode and "not installed" in failed.stderr
+        assert not state_path.exists()
+        state_path.write_bytes(state_bytes)
         run([REPOSITORY / "setup.sh", "--ssh", "demo", "--module", "ubuntu-updates"], environment)
         assert (remote_system / "usr/local/bin/ubuntu-updates").is_file()
         assert "ubuntu-updates" in json.loads(registry.read_text(encoding="utf-8"))["remote_deployments"]["demo"]["system"]

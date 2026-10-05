@@ -267,7 +267,7 @@ def uninstall(state_path: Path, state: dict, system: bool, force: bool, purge_co
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("install", "uninstall"))
+    parser.add_argument("action", choices=("install", "update", "uninstall"))
     parser.add_argument("--system", action="store_true")
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--purge-config", action="store_true")
@@ -285,10 +285,19 @@ def main() -> None:
     with registry_lock(state_path.parent.parent / "registry.json"):
         if args.action == "install":
             install(bin_dir, state_path, root, system, selected)
+        elif args.action == "update":
+            state = read_state(state_path, system)
+            if not state["commands"]:
+                fail(f"{NAME} is not installed in this scope")
+            if MANIFEST.get("components"):
+                owned = installed_components(state)
+                if selected is None:
+                    selected = owned
+                elif not selected <= owned:
+                    fail(f"Components are not installed: {', '.join(sorted(selected - owned))}")
+            install(bin_dir, state_path, root, system, selected)
         else:
             uninstall(state_path, read_state(state_path, system), system, args.force, args.purge_config, root, selected)
-
-
 
 if __name__ == "__main__":
     try:

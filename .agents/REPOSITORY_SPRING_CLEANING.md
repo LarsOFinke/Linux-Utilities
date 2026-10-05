@@ -2,7 +2,7 @@
 
 ## Architecture
 
-The repository is a wrapper around independent modules. Root `setup.sh` and `uninstall.sh` provide discovery, selection, scope routing, transactions, and registry based ownership. The implementation is in `src/installation/`; `configuration/install.json` is the single map from stable module IDs to manifests. A module must not depend on the wrapper after its directory is copied elsewhere.
+The repository is a wrapper around independent modules. Root `setup.sh`, `update.sh`, and `uninstall.sh` provide discovery, selection, scope routing, transactions, and registry based ownership. The implementation is in `src/installation/`; `configuration/install.json` is the single map from stable module IDs to manifests. A module must not depend on the wrapper after its directory is copied elsewhere.
 
 Modules live under `src/modules/<concern>/<module>/`. The concern directories are `data-privacy`, `monitoring`, `system-utilities`, and `server-services`. Each module owns `module.json`, `README.md`, `setup.sh`, `uninstall.sh`, scripts or components, and focused tests. A manifest carries a category and a subcategory for navigation; those labels may change without changing the stable ID. Use a component in a module only when the tasks share a cohesive purpose and need independently selectable install ownership.
 
@@ -19,7 +19,7 @@ Registry entries identify installed commands by path and hash. Shared uninstall 
 1. Put its complete standalone directory under the appropriate concern. Update its manifest, README, and direct entry points.
 2. Add or change its manifest path in `configuration/install.json`. Keep the ID stable when only moving files. If ownership changes, provide a registry migration.
 3. Update source paths used by commands, build hooks, templates, and tests. Run `python3 src/installation/sync_portable_helpers.py` to refresh every copied portable helper.
-4. Test direct setup/uninstall, root setup/uninstall in both supported scopes, partial component ownership if present, and a copied module. Use temporary HOME and install roots.
+4. Test direct setup/uninstall, root setup/update/uninstall in both supported scopes, partial component ownership if present, and a copied module. Use temporary HOME and install roots.
 5. Update the root README and `PROJECT_CACHE.md`. Keep secrets, local settings, build output, and generated state out of Git.
 
 ## Final sweep

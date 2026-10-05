@@ -26,7 +26,10 @@ with tempfile.TemporaryDirectory(prefix="linux-utilities-") as temporary:
             if not parts or parts[0] != "module" or ".." in parts or not (member.isfile() or member.isdir()):
                 raise RuntimeError("Unsafe module archive member")
         archive.extractall(root)
-    command = [str(root / "module" / ("setup.sh" if options["action"] == "install" else "uninstall.sh"))]
+    if options["action"] == "update":
+        command = [sys.executable, str(root / "module" / "portable_module.py"), "update"]
+    else:
+        command = [str(root / "module" / ("uninstall.sh" if options["action"] == "uninstall" else "setup.sh"))]
     if options["system"]:
         command.append("--system")
     if options["force"]:
@@ -88,7 +91,11 @@ def scan_remote(target: str, scope: str) -> dict:
         command = "sudo -n -- " + command
     result = subprocess.run(["ssh", "-o", "BatchMode=yes", target, command],
                             capture_output=True, text=True, check=True)
-    return {module: entry for module, entry in json.loads(result.stdout).items() if module in MODULES}
+    scanned = {module: entry for module, entry in json.loads(result.stdout).items() if module in MODULES}
+    for module, entry in scanned.items():
+        if not MODULES[module]["components"]:
+            entry["components"] = None
+    return scanned
 
 
 def record(target: str, scope: str, module: str, components: set[str] | None, action: str) -> None:
@@ -97,7 +104,7 @@ def record(target: str, scope: str, module: str, components: set[str] | None, ac
         deployments = registry.setdefault("remote_deployments", {})
         scopes = deployments.setdefault(target, {})
         entries = scopes.setdefault(scope, {})
-        if action == "install":
+        if action in ("install", "update"):
             names = set(MODULES[module]["components"]) if components is None else components
             previous = entries.get(module, {}).get("components", [])
             entries[module] = {"components": sorted(set(previous) | names) if MODULES[module]["components"] else None,
@@ -161,4 +168,5 @@ def deploy(target: str, selection: dict[str, set[str] | None], system: bool,
             record(target, scope, module, components, action)
         except (OSError, RuntimeError) as error:
             raise RuntimeError(f"Remote {action} of {module} succeeded on {target}, but local registry update failed: {error}") from error
-        print(f"{action.title()}ed {module} on {target} [{scope}]")
+        verb = {"install": "Installed", "update": "Updated", "uninstall": "Removed"}[action]
+        print(f"{verb} {module} on {target} [{scope}]")

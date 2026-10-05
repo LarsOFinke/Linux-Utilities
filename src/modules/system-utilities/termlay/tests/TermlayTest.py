@@ -284,13 +284,31 @@ class TermlayTest(unittest.TestCase):
         duplicate = proc / "103"
         duplicate.mkdir()
         (duplicate / "cmdline").write_bytes(b"node\0/usr/bin/codex\0")
-        self.assertIsNone(foreground_directory(title, proc))
+        self.assertEqual(foreground_directory(title, proc), str(self.second))
         other = proc / "104"
         other.mkdir()
         (other / "comm").write_text("python\n", encoding="utf-8")
         (other / "status").write_text("PPid:\t101\n", encoding="utf-8")
         (other / "cmdline").write_bytes(b"python\0/tmp/app.py\0")
         self.assertEqual(foreground_directory("Editor — python /tmp/app.py", proc), str(self.second))
+
+        fallback_proc = self.root / "fallback-proc"
+        fallback_proc.mkdir()
+        project = self.root / "Portfolio"
+        project.mkdir()
+        for pid, parent, comm, argv in (
+            ("200", "1", "ptyxis-agent", b"ptyxis-agent\0"),
+            ("201", "200", "bash", b"bash\0"),
+            ("202", "201", "node", b"node\0/opt/codex/codex.js\0"),
+        ):
+            process = fallback_proc / pid
+            process.mkdir()
+            (process / "comm").write_text(comm + "\n", encoding="utf-8")
+            (process / "status").write_text(f"PPid:\t{parent}\n", encoding="utf-8")
+            (process / "cmdline").write_bytes(argv)
+        (fallback_proc / "201/cwd").symlink_to(project, target_is_directory=True)
+        title_with_launcher = "Portfolio — node /home/lars/.local/bin/codex "
+        self.assertIsNone(foreground_directory(title_with_launcher, fallback_proc))
 
         with patch("current_layout.read_current_tab_titles", return_value=[
             f"lars@laptop: {self.first}", title,
@@ -300,6 +318,34 @@ class TermlayTest(unittest.TestCase):
                 patch("builtins.input", side_effect=[str(self.first), str(self.first)]):
             layout = current_layout("captured")
         self.assertEqual(layout.directories, (self.first, self.second, self.first, self.first))
+
+    def test_same_launcher_in_multiple_workspaces(self) -> None:
+        proc = self.root / "proc"
+        proc.mkdir()
+        projects = [self.root / "Linux-Utilities", self.root / "Finance-Planner"]
+        for project in projects:
+            project.mkdir()
+        for pid, parent, comm, argv, cwd in (
+            (100, 1, "ptyxis-agent", b"ptyxis-agent", self.root),
+            (101, 100, "bash", b"bash", projects[0]),
+            (102, 101, "node", b"node\0/home/lars/.local/bin/codex\0", projects[0]),
+            (103, 100, "bash", b"bash", projects[1]),
+            (104, 103, "node", b"node\0/home/lars/.local/bin/codex\0", projects[1]),
+        ):
+            process = proc / str(pid)
+            process.mkdir()
+            (process / "comm").write_text(comm)
+            (process / "status").write_text(f"PPid:\t{parent}\n")
+            (process / "cmdline").write_bytes(argv)
+            (process / "cwd").symlink_to(cwd, target_is_directory=True)
+        for project in projects:
+            title = f"⠸ Analyze this project | {project.name} — node /home/lars/.local/bin/codex "
+            self.assertEqual(foreground_directory(title, proc), str(project))
+        self.assertIsNone(foreground_directory("Portfolio — node /home/lars/.local/bin/codex ", proc))
+        self.assertIsNone(foreground_directory("Linux-Utilities — node /other/program.js", proc))
+        self.assertEqual(directory_from_title(
+            "lars@laptop: ~/Projekte/Portfolio — python3 /home/lars/.local/bin/termlay update "),
+            "~/Projekte/Portfolio")
 
     def test_save_current_cancel_preserves_existing_layout(self) -> None:
         self.run_cli("save", "work", str(self.first))

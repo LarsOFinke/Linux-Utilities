@@ -30,7 +30,7 @@ def main() -> int:
         except SyntaxError as error:
             print(error, file=sys.stderr)
             failures.append(str(path))
-    shells = sorted(Path("src").rglob("*.sh")) + [Path("setup.sh"), Path("uninstall.sh")]
+    shells = sorted(Path("src").rglob("*.sh")) + [Path("setup.sh"), Path("uninstall.sh"), Path("update.sh")]
     commands = [(f"Bash syntax: {path}", ["bash", "-n", str(path)]) for path in shells]
     commands.append(("ShellCheck", ["shellcheck", *map(str, shells)]))
     commands.extend((str(path), ["bash", str(path)]) for path in sorted(Path("src").glob("**/tests/*.sh")))
