@@ -24,7 +24,13 @@ class LayoutStore:
         if self.directory.is_symlink():
             raise TermlayError(f"refusing symbolic-link layout directory: {self.directory}")
 
-    def save(self, layout: Layout, force: bool = False) -> None:
+    def save(self, layout: Layout) -> None:
+        self._write(layout, replace_existing=False)
+
+    def replace(self, layout: Layout) -> None:
+        self._write(layout, replace_existing=True)
+
+    def _write(self, layout: Layout, replace_existing: bool) -> None:
         path = self.path(layout.name)
         self.check_directory()
         self.directory.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -36,22 +42,26 @@ class LayoutStore:
             os.close(descriptor)
         if path.is_symlink():
             raise TermlayError(f"refusing symbolic-link layout: {path}")
-        if path.exists() and not force:
-            raise TermlayError(f"layout '{layout.name}' already exists; use --force to overwrite")
+        if replace_existing and not path.is_file():
+            raise TermlayError(f"layout '{layout.name}' not found")
+        if path.exists() and not replace_existing:
+            raise TermlayError(f"layout '{layout.name}' already exists; use 'termlay update' to replace it")
         descriptor, temporary = tempfile.mkstemp(prefix=".termlay-", suffix=".json", dir=self.directory)
         try:
             with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
                 json.dump(layout.to_json(), stream, indent=2)
                 stream.write("\n")
             os.chmod(temporary, 0o600)
-            if force:
+            if replace_existing:
                 if path.is_symlink():
                     raise TermlayError(f"refusing symbolic-link layout: {path}")
+                if not path.is_file():
+                    raise TermlayError(f"layout '{layout.name}' no longer exists")
                 os.replace(temporary, path)
             else:
                 os.link(temporary, path)
         except FileExistsError as error:
-            raise TermlayError(f"layout '{layout.name}' already exists; use --force to overwrite") from error
+            raise TermlayError(f"layout '{layout.name}' already exists; use 'termlay update' to replace it") from error
         finally:
             Path(temporary).unlink(missing_ok=True)
 

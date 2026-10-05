@@ -11,6 +11,7 @@ SCRIPT_DIRECTORY = Path(__file__).resolve().parent
 sys.path[:0] = [str(SCRIPT_DIRECTORY / concern) for concern in ("layout", "ptyxis")
                 if (SCRIPT_DIRECTORY / concern).is_dir()]
 
+from Layout import Layout
 from LayoutStore import LayoutStore
 from PtyxisBackend import PtyxisBackend
 from TermlayError import TermlayError
@@ -28,10 +29,9 @@ def parser() -> argparse.ArgumentParser:
     save = commands.add_parser("save", aliases=["s"], help="save a named layout")
     save.add_argument("name")
     save.add_argument("directories", nargs="*")
-    save.add_argument("--force", action="store_true", help="overwrite an existing layout")
     current = commands.add_parser("save-current", help="save directories from the focused Ptyxis window")
     current.add_argument("name")
-    current.add_argument("--force", action="store_true", help="overwrite an existing layout")
+    commands.add_parser("update", help="interactively replace saved layouts with the current Ptyxis tabs")
     opening = commands.add_parser("open", aliases=["o"], help="open a layout in Ptyxis")
     opening.add_argument("name")
     opening.add_argument("--new-tabs", action="store_true", help="open every directory in a new tab")
@@ -45,7 +45,7 @@ def parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
-    known = {"save", "s", "save-current", "open", "o", "list", "ls", "show", "delete", "rm"}
+    known = {"save", "s", "save-current", "update", "open", "o", "list", "ls", "show", "delete", "rm"}
     if argv and not argv[0].startswith("-") and argv[0] not in known:
         print(f"termlay: unknown command '{argv[0]}'\nRun 'termlay --help' for usage.", file=sys.stderr)
         return 2
@@ -54,12 +54,53 @@ def main(argv: list[str] | None = None) -> int:
     store = LayoutStore()
     if command == "save":
         layout = layout_from_paths(args.name, args.directories)
-        store.save(layout, force=args.force)
+        store.save(layout)
         print(f"Saved layout '{layout.name}' ({len(layout.directories)} tabs)")
     elif command == "save-current":
         layout = current_layout(args.name)
-        store.save(layout, force=args.force)
+        store.save(layout)
         print(f"Saved layout '{layout.name}' ({len(layout.directories)} tabs)")
+    elif command == "update":
+        names = store.list_names()
+        if not names:
+            raise TermlayError("no saved layouts to update")
+        if not sys.stdin.isatty():
+            raise TermlayError("update requires an interactive terminal")
+        print("Saved layouts:")
+        for index, name in enumerate(names, 1):
+            print(f"  {index}. {name}")
+        while True:
+            try:
+                answer = input("Select layout numbers separated by commas, 'all', or 'q': ").strip()
+            except EOFError as error:
+                raise TermlayError("layout selection cancelled") from error
+            if answer.lower() in {"q", "quit"}:
+                print("Update cancelled")
+                return 0
+            if answer.lower() == "all":
+                selected = names
+                break
+            try:
+                indices = [int(piece.strip()) for piece in answer.split(",")]
+                if not indices or any(index < 1 or index > len(names) for index in indices):
+                    raise ValueError
+                selected = list(dict.fromkeys(names[index - 1] for index in indices))
+                break
+            except ValueError:
+                print("Enter listed numbers, 'all', or 'q'.")
+        try:
+            confirmation = input(
+                f"Replace {', '.join(selected)} with the current Ptyxis tabs? [y/N] "
+            ).strip()
+        except EOFError as error:
+            raise TermlayError("update confirmation cancelled") from error
+        if confirmation.lower() not in {"y", "yes"}:
+            print("Update cancelled")
+            return 0
+        captured = current_layout(selected[0])
+        for name in selected:
+            store.replace(Layout(name, captured.directories))
+            print(f"Updated layout '{name}' ({len(captured.directories)} tabs)")
     elif command == "open":
         layout = store.load(args.name)
         missing = missing_directories(layout)

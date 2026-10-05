@@ -68,12 +68,13 @@ class TermlayTest(unittest.TestCase):
         self.assertEqual(self.run_cli("show", "work").stdout,
                          f"Layout: work\n\n1  {self.second}\n2  {self.first}\n3  {self.second}\n")
 
-    def test_duplicate_force_list_aliases_and_delete(self) -> None:
+    def test_duplicate_save_requires_update_to_replace_layout(self) -> None:
         self.run_cli("s", "zeta", str(self.first))
         duplicate = self.run_cli("save", "zeta", str(self.second), success=False)
-        self.assertIn("use --force", duplicate.stderr)
+        self.assertIn("termlay update", duplicate.stderr)
         self.assertEqual(self.run_cli("show", "zeta").stdout.count(str(self.first)), 1)
-        self.run_cli("save", "zeta", str(self.second), "--force")
+        self.run_cli("delete", "zeta")
+        self.run_cli("save", "zeta", str(self.second))
         self.run_cli("save", "alpha", str(self.first))
         self.assertEqual(self.run_cli("ls").stdout, "alpha\nzeta\n")
         self.assertIn(str(self.second), self.run_cli("show", "zeta").stdout)
@@ -124,7 +125,7 @@ class TermlayTest(unittest.TestCase):
         path.unlink()
         path.symlink_to(self.root / "target")
         with self.assertRaises(TermlayError):
-            store.save(Layout("broken", (self.first,)), force=True)
+            store.replace(Layout("broken", (self.first,)))
         with self.assertRaises(TermlayError):
             store.load("broken")
 
@@ -220,7 +221,8 @@ class TermlayTest(unittest.TestCase):
         self.run_cli("save", "work", str(self.second))
         self.assertEqual(open_interactively(), [
             ["test-shell", ["-i"], str(self.second), str(self.second)]])
-        self.run_cli("save", "work", str(self.first), str(self.second), "--force")
+        self.run_cli("delete", "work")
+        self.run_cli("save", "work", str(self.first), str(self.second))
         records = open_interactively()
         self.assertEqual([record[:2] for record in records], [
             ["ptyxis", ["--tab", "--working-directory", str(self.second)]],
@@ -308,10 +310,10 @@ class TermlayTest(unittest.TestCase):
                 patch("current_layout.read_current_tab_titles", return_value=["Unknown tab"]), \
                 patch("builtins.input", return_value=""):
             with self.assertRaises(TermlayError):
-                cli(["save-current", "work", "--force"])
+                cli(["save-current", "work"])
         with patch("current_layout.read_current_tab_titles", return_value=[]):
             with self.assertRaisesRegex(TermlayError, "no Ptyxis tabs"):
-                cli(["save-current", "work", "--force"])
+                cli(["save-current", "work"])
         self.assertEqual(existing.read_bytes(), original)
 
     def test_save_current_cli_writes_discovered_tabs_in_order(self) -> None:

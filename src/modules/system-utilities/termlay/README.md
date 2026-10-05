@@ -5,13 +5,14 @@ Save a named, ordered set of working directories and reopen them as Ptyxis tabs:
 ```bash
 termlay save work ~/dev/frontend ~/dev/backend
 termlay save-current work
+termlay update
 termlay open work
 termlay list
 termlay show work
 termlay delete work
 ```
 
-`termlay save work .` saves the current directory. `termlay save-current work` discovers tabs in the focused Ptyxis window in their visible order. It reads standard shell titles, and for a uniquely identifiable local foreground process (including Codex) it reads the owning shell's working directory. If a tab cannot be identified, it asks for that tab's directory; entering a blank line cancels without saving. `save-current` needs Python GObject and AT-SPI bindings plus a working desktop accessibility service. Paths are expanded, resolved to absolute directories, and checked when saved. An existing name requires `--force` to overwrite it, including with `save-current`. `open` checks **all** saved directories before starting Ptyxis and reports any that are missing. The short aliases are `s`, `o`, `ls`, and `rm`. Run `termlay --help` or `termlay --version` for CLI details.
+`termlay save work .` saves the current directory. `termlay save-current work` discovers tabs in the focused Ptyxis window in their visible order. It reads standard shell titles, and for a uniquely identifiable local foreground process (including Codex) it reads the owning shell's working directory. If a tab cannot be identified, it asks for that tab's directory; entering a blank line cancels without saving. `save-current` needs Python GObject and AT-SPI bindings plus a working desktop accessibility service. Paths are expanded, resolved to absolute directories, and checked when saved. `save` and `save-current` create new layouts and refuse to overwrite an existing name. Use `termlay update` to interactively select saved layouts, confirm replacement, and refresh them from the focused Ptyxis window. Unclear tab directories use the same prompts as `save-current`; cancelling selection or tab discovery leaves selected layouts unchanged. `open` checks **all** saved directories before starting Ptyxis and reports any that are missing. The short aliases are `s`, `o`, `ls`, and `rm`. Run `termlay --help` or `termlay --version` for CLI details.
 
 Layouts are JSON files at `$XDG_CONFIG_HOME/termlay/layouts/<name>.json`, or `~/.config/termlay/layouts/<name>.json` when `XDG_CONFIG_HOME` is unset. `XDG_CONFIG_HOME` must be absolute. The layout directory is private (mode 0700), cannot be a symbolic link, and new files use mode 0600. The versioned file records a name and an ordered `tabs` array with each tab's `cwd`.
 
