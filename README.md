@@ -64,7 +64,7 @@ The previous multi-command entry points (`privacy-cleanup`, `ubuntu-updates`, `c
 
 `vps-gateway` is system-scope. Run `sudo vps-gateway-init --empty` to install the core and catch-all without a first project site; the interactive initializer also offers this choice. Project installers can then import their own routes with `sudo vps-gateway-site-import --host NAME --file PATH` or stream them through standard input with `--file -`. Run `sudo vps-gateway-add` for interactive site creation. `sudo vps-gateway-configure` remains package-only. See the [VPS gateway guide](src/modules/server-services/vps-gateway/README.md).
 
-`termlay` saves named directories under the XDG configuration directory and opens them as Ptyxis tabs. Run `termlay save-current work` in a Ptyxis window to discover its tabs, or `termlay save work ~/dev/frontend ~/dev/backend` to enter directories manually; then run `termlay open work`. See the [terminal layouts guide](src/modules/system-utilities/termlay/README.md) for storage, commands, and limitations.
+`termlay` saves named directories under the XDG configuration directory and opens them as Ptyxis tabs. Run `termlay save-current work` in a Ptyxis window to discover its tabs, or `termlay save work ~/dev/frontend ~/dev/backend` to enter directories manually; then run `termlay open work`. Interactive opening reuses the origin tab for the first directory, avoiding an extra tab; `--new-tabs` opens every entry in a new tab. See the [terminal layouts guide](src/modules/system-utilities/termlay/README.md) for storage, commands, and limitations.
 
 `log-scout` scans recent journal entries or selected text logs, summarizes warning/error
 categories, and lets you drill into repeated-message groups and representative examples.

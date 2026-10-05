@@ -15,12 +15,21 @@ termlay delete work
 
 Layouts are JSON files at `$XDG_CONFIG_HOME/termlay/layouts/<name>.json`, or `~/.config/termlay/layouts/<name>.json` when `XDG_CONFIG_HOME` is unset. `XDG_CONFIG_HOME` must be absolute. The layout directory is private (mode 0700), cannot be a symbolic link, and new files use mode 0600. The versioned file records a name and an ordered `tabs` array with each tab's `cwd`.
 
-Install with `./setup.sh --module termlay` from the repository root, or run this module's `setup.sh` directly. The default install puts `termlay` and its Python helpers in `~/.local/bin`; `--system` is available for a shared command. Python 3.9 or newer is required for setup and runtime. Ptyxis must be installed and available on `PATH` for `open`; saving and inspecting layouts do not need it. The backend invokes the supported `ptyxis --tab --working-directory DIR` CLI once per directory, in order. If Ptyxis is not already running, its `--tab` option starts an instance. Installed commands work from any working directory.
+When run interactively in a Ptyxis tab, `open` reuses that tab for the first saved
+directory and creates new tabs only for the remaining directories. A one-directory
+layout therefore creates no extra tab. The reused tab starts a fresh interactive
+`$SHELL` (or `/bin/sh` when unset); exiting it returns to the shell that launched
+Termlay. Other existing tabs remain open. Tab reuse requires `PTYXIS_VERSION`,
+terminal input/output, and a foreground process; SSH, tmux, and screen sessions
+use new tabs instead. `termlay open work --new-tabs` explicitly opens every entry
+in a new tab, as do noninteractive calls or calls from another terminal emulator.
 
-`termlay` stores and reopens directories. `save-current` discovers tabs only in the focused Ptyxis window; it does not inspect other windows. Commands, shell state, and terminal window placement are not saved. An `open` operation can leave earlier tabs open if Ptyxis fails on a later tab.
+Install with `./setup.sh --module termlay` from the repository root, or run this module's `setup.sh` directly. The default install puts `termlay` and its Python helpers in `~/.local/bin`; `--system` is available for a shared command. Python 3.9 or newer is required for setup and runtime. Ptyxis must be installed and available on `PATH` for `open`; saving and inspecting layouts do not need it. The backend invokes the supported `ptyxis --tab --working-directory DIR` CLI for each new tab, in order. If Ptyxis is not already running, its `--tab` option starts an instance. Installed commands work from any working directory.
+
+`termlay` stores and reopens directories. `save-current` discovers tabs only in the focused Ptyxis window; it does not inspect other windows. Commands, shell state, and terminal window placement are not saved. An `open` operation can leave earlier tabs open if Ptyxis fails on a later tab. The origin tab's shell starts only after all requested new tabs have opened successfully; a failure leaves the calling shell available.
 
 Remove the command with `./uninstall.sh --module termlay` or this module's `uninstall.sh`. Saved layouts are user data and remain on disk.
 
 The scripts keep each class in its own PascalCase file. `scripts/layout/` owns layout data, storage, and path validation; `scripts/ptyxis/` owns tab discovery, process lookup, capture prompts, and opening tabs. The manifest installs their helpers beside `termlay` so the command works from any directory.
 
-Run `python3 src/modules/system-utilities/termlay/tests/TermlayTest.py` for focused CLI and storage tests. The test uses a fake Ptyxis executable and a temporary home; it does not open terminal windows.
+Run `python3 src/modules/system-utilities/termlay/tests/TermlayTest.py` for focused CLI and storage tests. Tests use fake Ptyxis/shell executables, a temporary home, and a real pseudo-terminal to check tab reuse; they do not open terminal windows.

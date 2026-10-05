@@ -4,13 +4,16 @@
 from __future__ import annotations
 
 import hashlib
+import fcntl
 import io
 import json
 import os
+import pty
 import runpy
 import subprocess
 import sys
 import tempfile
+import termios
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
@@ -167,10 +170,97 @@ class TermlayTest(unittest.TestCase):
         layout = layout_from_paths("work", [str(self.first), str(self.second)])
         self.assertEqual(missing_directories(layout), [])
         with patch("PtyxisBackend.shutil.which", return_value="/usr/bin/ptyxis"), \
+                patch.object(PtyxisBackend, "current_shell", return_value=None), \
                 patch("PtyxisBackend.subprocess.run") as run:
             PtyxisBackend().open_layout(layout)
         self.assertEqual([call.args[0][-1] for call in run.call_args_list],
                          [str(self.first), str(self.second)])
+
+    def test_interactive_open_reuses_origin_tab(self) -> None:
+        mock_bin = self.root / "bin"
+        mock_bin.mkdir()
+        log = self.root / "opened.jsonl"
+        for name in ("ptyxis", "test-shell"):
+            executable = mock_bin / name
+            executable.write_text(
+                f"#!{sys.executable}\nimport json, os, sys\n"
+                "with open(os.environ['TERMLAY_TEST_LOG'], 'a') as stream:\n"
+                f"    stream.write(json.dumps([{name!r}, sys.argv[1:], os.getcwd(), os.environ.get('PWD')]) + '\\n')\n")
+            executable.chmod(0o755)
+        environment = dict(self.environment, PTYXIS_VERSION="test", SHELL=str(mock_bin / "test-shell"),
+                           PATH=f"{mock_bin}:{os.environ['PATH']}", TERMLAY_TEST_LOG=str(log))
+        for variable in ("TMUX", "STY", "SSH_CONNECTION"):
+            environment.pop(variable, None)
+
+        def own_terminal():
+            os.setsid()
+            fcntl.ioctl(0, termios.TIOCSCTTY, 0)
+
+        def open_interactively(*args):
+            master, slave = pty.openpty()
+            try:
+                with subprocess.Popen([sys.executable, str(self.command), "open", "work", *args],
+                                      stdin=slave, stdout=slave, stderr=slave, cwd=self.first,
+                                      env=environment, preexec_fn=own_terminal) as child:
+                    try:
+                        child.wait(timeout=10)
+                    except subprocess.TimeoutExpired:
+                        child.kill()
+                        child.wait()
+                        self.fail("interactive open did not finish")
+                    self.assertEqual(child.returncode, 0)
+            finally:
+                os.close(slave)
+                os.close(master)
+            records = [json.loads(line) for line in log.read_text().splitlines()]
+            log.unlink()
+            return records
+
+        # A one-tab layout starts its shell in place, without invoking Ptyxis.
+        self.run_cli("save", "work", str(self.second))
+        self.assertEqual(open_interactively(), [
+            ["test-shell", ["-i"], str(self.second), str(self.second)]])
+        self.run_cli("save", "work", str(self.first), str(self.second), "--force")
+        records = open_interactively()
+        self.assertEqual([record[:2] for record in records], [
+            ["ptyxis", ["--tab", "--working-directory", str(self.second)]],
+            ["test-shell", ["-i"]]])
+        self.assertEqual(records[-1][2:], [str(self.first), str(self.first)])
+        records = open_interactively("--new-tabs")
+        self.assertEqual([record[:2] for record in records], [
+            ["ptyxis", ["--tab", "--working-directory", str(self.first)]],
+            ["ptyxis", ["--tab", "--working-directory", str(self.second)]]])
+
+    def test_failed_tab_creation_does_not_replace_current_shell(self) -> None:
+        layout = layout_from_paths("work", [str(self.first), str(self.second)])
+        with patch("PtyxisBackend.shutil.which", return_value="/usr/bin/ptyxis"), \
+                patch.object(PtyxisBackend, "current_shell", return_value="/bin/bash"), \
+                patch("PtyxisBackend.subprocess.run", side_effect=subprocess.CalledProcessError(1, "ptyxis")), \
+                patch("PtyxisBackend.os.execvpe") as execute, patch("PtyxisBackend.os.chdir") as chdir:
+            with self.assertRaisesRegex(TermlayError, "Ptyxis failed"):
+                PtyxisBackend().open_layout(layout)
+            execute.assert_not_called()
+            chdir.assert_not_called()
+
+    def test_current_shell_requires_foreground_ptyxis_terminal(self) -> None:
+        with patch.dict(os.environ, {"PTYXIS_VERSION": "test", "SHELL": "/bin/sh"}, clear=True), \
+                patch("PtyxisBackend.sys.stdin.isatty", return_value=True), \
+                patch("PtyxisBackend.sys.stdout.isatty", return_value=True), \
+                patch("PtyxisBackend.sys.stdin.fileno", return_value=0), \
+                patch("PtyxisBackend.os.tcgetpgrp", return_value=os.getpgrp()):
+            self.assertIsNotNone(PtyxisBackend().current_shell())
+            for variable in ("TMUX", "STY", "SSH_CONNECTION"):
+                with patch.dict(os.environ, {variable: "active"}):
+                    self.assertIsNone(PtyxisBackend().current_shell())
+            with patch.dict(os.environ, PTYXIS_VERSION=""):
+                self.assertIsNone(PtyxisBackend().current_shell())
+            with patch("PtyxisBackend.os.tcgetpgrp", return_value=-1):
+                self.assertIsNone(PtyxisBackend().current_shell())
+            with patch("PtyxisBackend.sys.stdin.isatty", return_value=False):
+                self.assertIsNone(PtyxisBackend().current_shell())
+            with patch.dict(os.environ, SHELL="/nonexistent/termlay-test-shell"):
+                with self.assertRaisesRegex(TermlayError, "shell is not executable"):
+                    PtyxisBackend().current_shell()
 
     def test_current_titles_foreground_process_and_manual_fallback(self) -> None:
         self.assertEqual(directory_from_title("lars@laptop: ~/project"), "~/project")
