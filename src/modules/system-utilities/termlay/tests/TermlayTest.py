@@ -61,15 +61,23 @@ class TermlayTest(unittest.TestCase):
             self.assertEqual(self.cli([command]), 0)
         return output.getvalue()
 
-    def test_only_three_commands_and_interactive_requirement(self) -> None:
+    def test_commands_and_interactive_requirement(self) -> None:
         help_text = self.run_cli("--help").stdout
-        self.assertIn("{save,update,delete}", help_text)
-        self.assertIn("termlay 0.3.0", self.run_cli("--version").stdout)
-        for old in ("open", "list", "show", "save-current", "s", "rm"):
+        self.assertIn("{save,update,delete,list,ls}", help_text)
+        self.assertIn("termlay 0.4.0", self.run_cli("--version").stdout)
+        for old in ("open", "show", "save-current", "s", "rm"):
             self.assertIn("unknown command", self.run_cli(old, success=False).stderr)
         for command in ("save", "update", "delete"):
             self.assertIn("requires an interactive terminal", self.run_cli(command, success=False).stderr)
         self.assertIn("unknown command 'xyz'", self.run_cli("xyz", success=False).stderr)
+
+    def test_list_and_ls_print_sorted_names_without_interaction(self) -> None:
+        self.assertEqual(self.run_cli("list").stdout, "")
+        for name in ("zeta", "alpha", "middle"):
+            self.store.save(Layout(name, (self.first,)))
+        expected = "alpha\nmiddle\nzeta\n"
+        self.assertEqual(self.run_cli("list").stdout, expected)
+        self.assertEqual(self.run_cli("ls").stdout, expected)
 
     def test_save_selects_tabs_in_window_order_and_keeps_private_storage(self) -> None:
         titles = [f"user@host: {self.first}", f"user@host: {self.second}",
@@ -192,7 +200,7 @@ class TermlayTest(unittest.TestCase):
         result = subprocess.run([str(installed), "--help"], cwd=self.second,
                                 env=self.environment, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("{save,update,delete}", result.stdout)
+        self.assertIn("{save,update,delete,list,ls}", result.stdout)
         self.store.save(Layout("preserved", (self.first,)))
         result = subprocess.run([str(REPOSITORY / "uninstall.sh"), "--module", "termlay"],
                                 cwd=REPOSITORY, env=self.environment, capture_output=True, text=True)
