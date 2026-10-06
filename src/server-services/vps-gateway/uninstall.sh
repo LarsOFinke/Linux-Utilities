@@ -1,0 +1,1 @@
+../../../installer/module_entry.sh

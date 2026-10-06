@@ -11,16 +11,16 @@
     }
   },
   "modules": {
-    "backup": "src/modules/data-privacy/backup/module.json",
-    "network": "src/modules/monitoring/network/module.json",
-    "system": "src/modules/system-utilities/system/module.json",
-    "termlay": "src/modules/system-utilities/termlay/module.json",
-    "connect-vps": "src/modules/system-utilities/connect-vps/module.json",
-    "system-update": "src/modules/server-services/system-update/module.json",
-    "privacy": "src/modules/data-privacy/privacy/module.json",
-    "canary": "src/modules/monitoring/canary/module.json",
-    "vps-gateway": "src/modules/server-services/vps-gateway/module.json",
-    "ubuntu-updates": "src/modules/server-services/ubuntu-updates/module.json",
-    "log-scout": "src/modules/monitoring/log-scout/module.json"
+    "backup": "src/data-privacy/backup/module.json",
+    "network": "src/monitoring/network/module.json",
+    "system": "src/system-utilities/system/module.json",
+    "termlay": "src/system-utilities/termlay/module.json",
+    "connect-vps": "src/system-utilities/connect-vps/module.json",
+    "system-update": "src/server-services/system-update/module.json",
+    "privacy": "src/data-privacy/privacy/module.json",
+    "canary": "src/monitoring/canary/module.json",
+    "vps-gateway": "src/server-services/vps-gateway/module.json",
+    "ubuntu-updates": "src/server-services/ubuntu-updates/module.json",
+    "log-scout": "src/monitoring/log-scout/module.json"
   }
 }

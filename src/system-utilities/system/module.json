@@ -1,0 +1,43 @@
+{
+  "display_name": "System utilities",
+  "category": "System utilities",
+  "subcategory": "Workstation setup",
+  "description": "AMD gaming packages and the H848 audio fix",
+  "schema_version": 1,
+  "id": "system",
+  "setup": "setup.sh",
+  "documentation": "README.md",
+  "commands": {
+    "install-amd-gaming": "components/amd-gaming/install_amd_gaming.sh",
+    "install-h848-audio-fix": "components/h848-audio/install_h848_audio_fix.sh",
+    "uninstall-h848-audio-fix": "components/h848-audio/uninstall_h848_audio_fix.sh",
+    "h848_audio_lifecycle.sh": "components/h848-audio/h848_audio_lifecycle.sh",
+    "h848_audio_guard.sh": "components/h848-audio/h848_audio_guard.sh",
+    "h848_wireplumber_05.conf": "components/h848-audio/h848_wireplumber_05.conf",
+    "h848_wireplumber_04.lua": "components/h848-audio/h848_wireplumber_04.lua",
+    "h848_audio_guard.service": "components/h848-audio/h848_audio_guard.service"
+  },
+  "non_executable_commands": [
+    "h848_audio_lifecycle.sh",
+    "h848_audio_guard.sh",
+    "h848_wireplumber_05.conf",
+    "h848_wireplumber_04.lua",
+    "h848_audio_guard.service"
+  ],
+  "components": {
+    "amd-gaming": {
+      "description": "AMD gaming package setup",
+      "commands": ["install-amd-gaming"]
+    },
+    "h848-audio": {
+      "description": "H848 audio fix and removal",
+      "commands": ["install-h848-audio-fix", "uninstall-h848-audio-fix", "h848_audio_lifecycle.sh", "h848_audio_guard.sh", "h848_wireplumber_05.conf", "h848_wireplumber_04.lua", "h848_audio_guard.service"]
+    }
+  },
+  "examples": [],
+  "cron_templates": [],
+  "scopes": [
+    "user",
+    "system"
+  ]
+}

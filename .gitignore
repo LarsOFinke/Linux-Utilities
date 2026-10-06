@@ -7,8 +7,8 @@
 *.env
 !*.env.example
 # Intentional fake credential files shipped in the canary project template.
-!src/modules/monitoring/canary/tools/canary_project/templates/standard/api/.env
-!src/modules/monitoring/canary/tools/canary_project/templates/standard/config/app.env
+!src/monitoring/canary/tools/canary_project/templates/standard/api/.env
+!src/monitoring/canary/tools/canary_project/templates/standard/config/app.env
 *.cfg
 !*.cfg.example
 *.pcap

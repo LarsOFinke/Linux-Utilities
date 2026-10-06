@@ -28,4 +28,4 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential shellcheck bzip2
       - name: Verify
-        run: python3 scripts/verify.py
+        run: python3 installer/verify.py

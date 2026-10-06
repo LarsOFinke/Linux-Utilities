@@ -1,0 +1,13 @@
+[Unit]
+Description=Redragon H848 stereo audio guard
+After=pipewire.service pipewire-pulse.service wireplumber.service
+Wants=pipewire.service pipewire-pulse.service wireplumber.service
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/h848-audio-guard --watch
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=default.target
