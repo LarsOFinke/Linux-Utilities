@@ -45,7 +45,7 @@ def main() -> int:
                  "src/system-utilities/connect-vps/tests/ConnectVpsTest.py",
                  "src/monitoring/log-scout/tests/LogScoutTest.py"):
         commands.append((path, [sys.executable, path]))
-    for concern in ("lifecycle", "tools"):
+    for concern in ("lifecycle", "ssh", "tools"):
         commands.append((f"Canary {concern} Python", [sys.executable, "-m", "unittest", "discover",
                        "-s", f"src/monitoring/canary/tests/{concern}", "-p", "*Test*.py"]))
     for name, command in commands:

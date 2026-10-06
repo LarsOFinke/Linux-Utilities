@@ -1,5 +1,17 @@
 # Event format
 
+## SSH watcher records
+
+The SSH watcher writes one JSON object per selected OpenSSH journal message. Fields are `event` (`attempt`, `success`, `failure`, `invalid-user`, `disconnect`, `session-open`, or `session-close`), `user` (login name or `null`), `address` (reported remote address or `null`), `timestamp_us` (journal realtime timestamp in microseconds when present), and `message` (original journal message). It recognizes `Connection from`, `Accepted ... for`, `Failed ... for`, `Invalid user ... from`, `Disconnected from` or `Connection closed by`, and `pam_unix(sshd:session)` open/close forms. Unrecognized messages are ignored. The classifier is based on journal text, so wording changes or another SSH server can cause missed events. `--user LOGIN` includes only messages with that named account; a connection before authentication may have no account yet.
+
+```json
+{"event":"success","user":"alice","address":"192.0.2.1","timestamp_us":"1790000000000000","message":"Accepted publickey for alice from 192.0.2.1 port 22 ssh2"}
+```
+
+The SSH `--action` executable receives that object on standard input after it is appended. The watcher starts with new journal messages and does not backfill history. Keep the private JSONL log because the original journal retention policy may differ.
+
+## File tracker records
+
 The output is newline-delimited JSON: one JSON object per event. The log is
 opened in append mode, so existing records are retained across restarts.
 

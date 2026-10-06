@@ -1,0 +1,79 @@
+#!/usr/bin/env python3
+"""Configure, update, and inspect the Canary SSH watcher."""
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+from canary_ssh_events import EVENTS
+from canary_ssh_lifecycle import CONFIG, STATE, UNIT, configure, record, remove, update, validate, verify
+from canary_state import ROOT, fail, systemctl
+
+
+def _choices(args, previous=None):
+    interactive = sys.stdin.isatty()
+    if not interactive and previous is None and (not args.events or not (args.user or args.system) or not args.log):
+        fail("noninteractive setup requires --events, --user LOGIN or --system, and --log")
+
+    def ask(prompt, default):
+        if not interactive:
+            return default
+        suffix = f" [{default}]" if default else ""
+        return input(f"{prompt}{suffix}: ").strip() or default
+
+    previous = previous or {}
+    event_text = args.events or ask(f"Events ({', '.join(EVENTS)}, comma separated)",
+                                    ",".join(previous.get("events", ("attempt", "success", "failure"))))
+    scope = "user" if args.user else "system" if args.system else ask(
+        "Scope (user/system)", previous.get("scope", "system"))
+    user = args.user or (ask("Login account", previous.get("user") or "") if scope == "user" else None)
+    log = args.log or ask("JSONL log", previous.get("log", "/var/log/fs-tracker/ssh.jsonl"))
+    action = None if args.no_action else args.action if args.action is not None else previous.get("action")
+    return validate([item.strip() for item in event_text.split(",")], scope, user, log, action)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    commands = parser.add_subparsers(dest="command", required=True)
+    for name in ("setup", "update"):
+        item = commands.add_parser(name)
+        item.add_argument("--events", help=f"comma separated: {', '.join(EVENTS)}")
+        scope = item.add_mutually_exclusive_group()
+        scope.add_argument("--user", metavar="LOGIN", help="watch one login account")
+        scope.add_argument("--system", action="store_true", help="watch all accounts")
+        item.add_argument("--log", help="absolute JSONL log path")
+        action = item.add_mutually_exclusive_group()
+        action.add_argument("--action", help="executable receiving event JSON on stdin")
+        action.add_argument("--no-action", action="store_true", help="remove the configured action")
+    commands.add_parser("status")
+    commands.add_parser("remove").add_argument("--yes", action="store_true")
+    args = parser.parse_args()
+    if ROOT == Path("/") and os.geteuid() != 0:
+        fail("run canary-ssh as root")
+    if args.command == "setup":
+        configure(_choices(args))
+    elif args.command == "update":
+        previous = json.loads(CONFIG.read_text(encoding="utf-8")) if STATE.is_file() else None
+        if previous is None:
+            configure(_choices(args))
+        else:
+            update(_choices(args, previous))
+    elif args.command == "status":
+        verify(record())
+        print(CONFIG.read_text(encoding="utf-8"), end="")
+        systemctl("status", UNIT.name)
+    else:
+        if not args.yes:
+            fail("remove requires --yes")
+        remove()
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (OSError, RuntimeError, subprocess.CalledProcessError, json.JSONDecodeError) as error:
+        print(f"canary-ssh: {error}", file=sys.stderr)
+        sys.exit(1)

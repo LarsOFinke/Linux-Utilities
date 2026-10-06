@@ -10,7 +10,8 @@ from pathlib import Path
 from catalog import MODULES
 
 
-def configure(selection: dict[str, set[str] | None], system: bool, test_root: Path) -> None:
+def configure(selection: dict[str, set[str] | None], system: bool, test_root: Path,
+              hook_name: str = "post_install") -> None:
     if not sys.stdin.isatty():
         return
     base = test_root if system else Path.home()
@@ -18,7 +19,7 @@ def configure(selection: dict[str, set[str] | None], system: bool, test_root: Pa
     for module, components in selection.items():
         if components is not None:
             continue
-        hook = MODULES[module].get("post_install")
+        hook = MODULES[module].get(hook_name)
         if not hook or input(f"{hook['prompt']} [y/N] ").strip() not in ("y", "Y"):
             continue
         environment = dict(os.environ)

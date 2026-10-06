@@ -44,6 +44,7 @@ def command_definitions(module: str, manifest: Path, source: dict) -> dict:
             raise SystemExit(f"Commands shared by {module} components: {', '.join(sorted(overlap))}")
         claimed.update(component["commands"])
     if components and (claimed != set(commands) or source.get("pre_remove") or source.get("post_install")
+                       or source.get("post_update")
                        or source.get("system_cron")):
         raise SystemExit(f"{module} components must partition commands and have no module lifecycle hooks or cron")
     return {"commands": paths, "non_executable_commands": helpers, "components": components}

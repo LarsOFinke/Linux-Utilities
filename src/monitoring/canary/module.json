@@ -1,8 +1,8 @@
 {
-  "display_name": "Canary file monitoring",
+  "display_name": "Canary file and SSH monitoring",
   "category": "Monitoring",
-  "subcategory": "File events",
-  "description": "named fanotify sensors and systemd services",
+  "subcategory": "File and SSH events",
+  "description": "named file sensors and selectable SSH journal events",
   "schema_version": 1,
   "id": "canary",
   "setup": "setup.sh",
@@ -16,12 +16,18 @@
     "canary-stop": "scripts/canary_workflow.sh",
     "canary-remove": "scripts/canary_workflow.sh",
     "canary-remove-all": "scripts/canary_workflow.sh",
+    "canary-ssh": "scripts/ssh/canary-ssh",
+    "canary-ssh-watcher": "scripts/ssh/canary_ssh_watcher.py",
+    "canary_ssh_events.py": "scripts/ssh/canary_ssh_events.py",
+    "canary_ssh_lifecycle.py": "scripts/ssh/canary_ssh_lifecycle.py",
     "canary_state.py": "scripts/canary_state.py",
     "canary_lifecycle.py": "scripts/canary_lifecycle.py"
   },
   "non_executable_commands": [
     "canary_state.py",
-    "canary_lifecycle.py"
+    "canary_lifecycle.py",
+    "canary_ssh_events.py",
+    "canary_ssh_lifecycle.py"
   ],
   "examples": [
     "configuration/fs-tracker.cfg.example"
@@ -39,6 +45,16 @@
   "pre_remove": {
     "command": "canary-remove-all",
     "args": ["--yes"]
+  },
+  "post_install": {
+    "command": "canary-ssh",
+    "args": ["setup"],
+    "prompt": "Configure SSH event watching now?"
+  },
+  "post_update": {
+    "command": "canary-ssh",
+    "args": ["update"],
+    "prompt": "Review Canary SSH watch choices now?"
   },
   "scopes": [
     "system"

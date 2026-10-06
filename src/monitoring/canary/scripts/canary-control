@@ -10,6 +10,7 @@ from pathlib import Path
 
 from canary_lifecycle import configure, remove_one
 from canary_state import ROOT, STATE, fail, record_for, systemctl, verify_owned
+from canary_ssh_lifecycle import STATE as SSH_STATE, record as ssh_record, remove as remove_ssh, verify as verify_ssh
 
 
 def main():
@@ -38,8 +39,12 @@ def main():
         records = [record_for(path.stem) for path in sorted(STATE.glob("*.json"))] if STATE.exists() else []
         for record in records:
             verify_owned(record)
+        if SSH_STATE.exists() or SSH_STATE.is_symlink():
+            verify_ssh(ssh_record())
         for record in records:
             remove_one(record)
+        if SSH_STATE.exists() or SSH_STATE.is_symlink():
+            remove_ssh()
     else:
         record = record_for(args.name)
         unit = f"fs-file-monitor-{args.name}.service"
