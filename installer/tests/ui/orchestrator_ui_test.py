@@ -22,6 +22,55 @@ def main() -> None:
         master, slave = pty.openpty()
         try:
             process = subprocess.Popen(
+                [str(REPOSITORY / "main.sh")], cwd=REPOSITORY, env=environment,
+                stdin=slave, stdout=slave, stderr=slave,
+            )
+            os.close(slave)
+            slave = -1
+            os.write(master, b"1\n1\nb\nb\nq\n")
+            if process.wait(timeout=15) != 0:
+                raise AssertionError("Back navigation from module and category failed")
+            output = bytearray()
+            while True:
+                try:
+                    output.extend(os.read(master, 4096))
+                except OSError:
+                    break
+            assert output.count(b"Categories:") == 2
+            assert output.count(b"Linux-Utilities\r\n") == 2
+        finally:
+            if slave >= 0:
+                os.close(slave)
+            os.close(master)
+        assert not (home / ".local/state/shell-scripts/registry.json").exists()
+
+        master, slave = pty.openpty()
+        try:
+            process = subprocess.Popen(
+                [str(REPOSITORY / "main.sh")], cwd=REPOSITORY, env=environment,
+                stdin=slave, stdout=slave, stderr=slave,
+            )
+            os.close(slave)
+            slave = -1
+            os.write(master, b"1\n4\n2\nb\nb\nb\nq\n")
+            if process.wait(timeout=15) != 0:
+                raise AssertionError("Back navigation from sub-module failed")
+            output = bytearray()
+            while True:
+                try:
+                    output.extend(os.read(master, 4096))
+                except OSError:
+                    break
+            assert output.count(b"System utilities modules:") == 2
+        finally:
+            if slave >= 0:
+                os.close(slave)
+            os.close(master)
+        assert not (home / ".local/state/shell-scripts/registry.json").exists()
+
+        master, slave = pty.openpty()
+        try:
+            process = subprocess.Popen(
                 [str(REPOSITORY / "scripts/setup.sh"), "--no-configure"],
                 cwd=REPOSITORY,
                 env=environment,

@@ -22,6 +22,7 @@ sys.path.insert(0, str(MODULE / "scripts"))
 
 from Layout import Layout
 from LayoutStore import LayoutStore
+from PtyxisBackend import PtyxisBackend
 from TermlayError import TermlayError
 from current_layout import current_layout, directory_from_title
 from layout_paths import config_directory
@@ -63,12 +64,14 @@ class TermlayTest(unittest.TestCase):
 
     def test_commands_and_interactive_requirement(self) -> None:
         help_text = self.run_cli("--help").stdout
-        self.assertIn("{save,update,delete,list,ls}", help_text)
-        self.assertIn("termlay 0.4.0", self.run_cli("--version").stdout)
-        for old in ("open", "show", "save-current", "s", "rm"):
+        self.assertIn("{save,open,update,delete,list,ls}", help_text)
+        self.assertIn("termlay 0.5.0", self.run_cli("--version").stdout)
+        for old in ("show", "save-current", "s", "rm"):
             self.assertIn("unknown command", self.run_cli(old, success=False).stderr)
         for command in ("save", "update", "delete"):
             self.assertIn("requires an interactive terminal", self.run_cli(command, success=False).stderr)
+        self.assertIn("requires a layout name or an interactive terminal",
+                      self.run_cli("open", success=False).stderr)
         self.assertIn("unknown command 'xyz'", self.run_cli("xyz", success=False).stderr)
 
     def test_list_and_ls_print_sorted_names_without_interaction(self) -> None:
@@ -78,6 +81,58 @@ class TermlayTest(unittest.TestCase):
         expected = "alpha\nmiddle\nzeta\n"
         self.assertEqual(self.run_cli("list").stdout, expected)
         self.assertEqual(self.run_cli("ls").stdout, expected)
+
+    def test_open_selects_layout_and_opens_each_tab_in_order(self) -> None:
+        self.store.save(Layout("work", (self.first, self.second, self.first)))
+        with patch.object(PtyxisBackend, "open_layout") as opening:
+            output = self.interactive("open", ["1", "2"])
+            self.assertIn("Opened layout 'work' (3 tabs)", output)
+            self.assertEqual(opening.call_args.args[0].directories,
+                             (self.first, self.second, self.first))
+            self.assertTrue(opening.call_args.kwargs["new_window"])
+            self.interactive("open", ["1", "1"])
+            self.assertFalse(opening.call_args.kwargs["new_window"])
+            self.assertIn("Open cancelled", self.interactive("open", ["q"]))
+            self.assertIn("Open cancelled", self.interactive("open", ["1", "q"]))
+            self.assertEqual(opening.call_count, 2)
+
+    def test_open_by_name_works_without_interaction_and_checks_directories(self) -> None:
+        self.store.save(Layout("work", (self.first, self.second)))
+        fake_bin = self.root / "bin"
+        fake_bin.mkdir()
+        log = self.root / "ptyxis-arguments.jsonl"
+        executable = fake_bin / "ptyxis"
+        executable.write_text("#!/usr/bin/env python3\n"
+                              "import json, os, sys\n"
+                              "with open(os.environ['PTYXIS_TEST_LOG'], 'a') as stream:\n"
+                              "    stream.write(json.dumps(sys.argv[1:]) + '\\n')\n")
+        executable.chmod(0o755)
+        self.environment.update(PATH=f"{fake_bin}:{os.environ.get('PATH', '')}",
+                                PTYXIS_TEST_LOG=str(log))
+        result = self.run_cli("open", "work")
+        self.assertIn("Opened layout 'work' (2 tabs)", result.stdout)
+        self.assertEqual([json.loads(line) for line in log.read_text().splitlines()],
+                         [["--tab", "--working-directory", str(self.first)],
+                          ["--tab", "--working-directory", str(self.second)]])
+        self.run_cli("open", "work", "--new-window")
+        self.assertEqual([json.loads(line) for line in log.read_text().splitlines()][2:],
+                         [["--new-window", "--working-directory", str(self.first)],
+                          ["--tab", "--working-directory", str(self.second)]])
+        self.second.rmdir()
+        self.assertIn("missing layout directories", self.run_cli("open", "work", success=False).stderr)
+        self.assertEqual(len(log.read_text().splitlines()), 4)
+
+    def test_open_reports_ptyxis_errors(self) -> None:
+        self.store.save(Layout("work", (self.first,)))
+        fake_bin = self.root / "bin"
+        fake_bin.mkdir()
+        executable = fake_bin / "ptyxis"
+        executable.write_text("#!/bin/sh\nexit 23\n")
+        executable.chmod(0o755)
+        self.environment["PATH"] = f"{fake_bin}:{os.environ.get('PATH', '')}"
+        error = self.run_cli("open", "work", success=False).stderr
+        self.assertIn("Ptyxis failed to open", error)
+        self.assertIn("exit 23", error)
 
     def test_save_selects_tabs_in_window_order_and_keeps_private_storage(self) -> None:
         titles = [f"user@host: {self.first}", f"user@host: {self.second}",
@@ -200,8 +255,17 @@ class TermlayTest(unittest.TestCase):
         result = subprocess.run([str(installed), "--help"], cwd=self.second,
                                 env=self.environment, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("{save,update,delete,list,ls}", result.stdout)
+        self.assertIn("{save,open,update,delete,list,ls}", result.stdout)
         self.store.save(Layout("preserved", (self.first,)))
+        fake_bin = self.root / "bin"
+        fake_bin.mkdir()
+        executable = fake_bin / "ptyxis"
+        executable.write_text("#!/bin/sh\nexit 0\n")
+        executable.chmod(0o755)
+        self.environment["PATH"] = f"{fake_bin}:{os.environ.get('PATH', '')}"
+        result = subprocess.run([str(installed), "open", "preserved"], cwd=self.second,
+                                env=self.environment, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
         result = subprocess.run([str(REPOSITORY / "scripts/uninstall.sh"), "--module", "termlay"],
                                 cwd=REPOSITORY, env=self.environment, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)

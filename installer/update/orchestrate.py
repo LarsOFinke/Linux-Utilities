@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 
 from catalog import MODULES
+from selection.available import BackSelection
 from remote.deploy import deploy
 from selection.installed import select_explicit, select_interactively
 from selection.inventory import load_inventories, system_needs_sudo
@@ -84,6 +85,8 @@ def main(argv: list[str] | None = None) -> int:
             for scope, modules in selection.items():
                 configure(modules, scope == "system", test_root, "post_update")
         return 0
+    except BackSelection:
+        return 3
     except (OSError, RuntimeError, subprocess.CalledProcessError, json.JSONDecodeError) as error:
         print(f"Linux-Utilities update: {error}", file=sys.stderr)
         return 1

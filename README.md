@@ -1,6 +1,6 @@
 # Linux-Utilities
 
-Independent Linux utilities organized by concern under `src/`. Run `./main.sh` to choose setup, update, or uninstall. Setup asks for category, module, then sub-module when needed, and installs selected modules as one batch. Each module also has its own setup and uninstall scripts. The stable module IDs are used in commands and registries; display names and categories help people find the right tool.
+Independent Linux utilities organized by concern under `src/`. Run `./main.sh` to choose setup, update, or uninstall. Setup asks for category, module, then sub-module when needed, and installs selected modules as one batch. Enter `b` at a selection menu to go back; from the category menu, it returns to the main action menu. Each module also has its own setup and uninstall scripts. The stable module IDs are used in commands and registries; display names and categories help people find the right tool.
 
 Setup, update, and uninstall require Python 3.9 or newer. Runtime requirements are listed in each module README.
 
@@ -73,7 +73,7 @@ The previous multi-command entry points (`privacy-cleanup`, `ubuntu-updates`, `c
 
 `vps-gateway` is system-scope. Run `sudo vps-gateway-init --empty` to install the core and catch-all without a first project site; the interactive initializer also offers this choice. Project installers can then import their own routes with `sudo vps-gateway-site-import --host NAME --file PATH` or stream them through standard input with `--file -`. Run `sudo vps-gateway-add` for interactive site creation. `sudo vps-gateway-configure` remains package-only. See the [VPS gateway guide](src/server-services/vps-gateway/README.md).
 
-`termlay save` selects tabs from the focused Ptyxis window and names a new layout, `termlay update` selects a layout and replacement tabs, and `termlay delete` selects layouts for removal. `termlay list` (or `termlay ls`) prints saved names. Layouts store working directories under the XDG configuration directory. See the [terminal layouts guide](src/system-utilities/termlay/README.md) for storage and limitations.
+`termlay save` selects tabs from the focused Ptyxis window and names a new layout. `termlay open` lets you choose a saved layout and whether to open it in the current or a new Ptyxis window; `termlay open NAME --new-window` selects a new window directly. `termlay update` selects a layout and replacement tabs, and `termlay delete` selects layouts for removal. `termlay list` (or `termlay ls`) prints saved names. Layouts store working directories under the XDG configuration directory. See the [terminal layouts guide](src/system-utilities/termlay/README.md) for storage and limitations.
 
 `connect-vps` selects a saved IP address and opens SSH. Use `connect-vps add`, `connect-vps update`, and `connect-vps delete` to manage entries interactively. SSH key or agent authentication is the default; password entries let SSH prompt when connecting. The private SQLite registry stores connection settings but no passwords or keys. See the [VPS connection guide](src/system-utilities/connect-vps/README.md).
 

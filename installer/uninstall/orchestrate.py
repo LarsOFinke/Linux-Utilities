@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 
 from catalog import MODULES
+from selection.available import BackSelection
 from remote.deploy import deploy
 from selection.installed import select_explicit, select_interactively
 from selection.inventory import load_inventories, system_needs_sudo
@@ -72,8 +73,11 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if not any(inventories.values()):
         raise RuntimeError("No installed modules are recorded.")
-    selection = (select_explicit(args, inventories) if args.module or args.component or args.all
-                 else select_interactively(inventories))
+    try:
+        selection = (select_explicit(args, inventories) if args.module or args.component or args.all
+                     else select_interactively(inventories))
+    except BackSelection:
+        return 3
     remove(selection, args)
     return 0
 

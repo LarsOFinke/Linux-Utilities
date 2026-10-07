@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Save, update, delete, and list Ptyxis terminal layouts."""
+"""Save, open, update, delete, and list Ptyxis terminal layouts."""
 
 from __future__ import annotations
 
@@ -13,12 +13,13 @@ sys.path[:0] = [str(SCRIPT_DIRECTORY / concern) for concern in ("layout", "ptyxi
 
 from Layout import Layout
 from LayoutStore import LayoutStore
+from PtyxisBackend import PtyxisBackend
 from TermlayError import TermlayError
 from current_layout import current_layout
 from layout_paths import validate_name
 from ptyxis_tabs import read_current_tab_titles
 
-VERSION = "0.4.0"
+VERSION = "0.5.0"
 
 
 def parser() -> argparse.ArgumentParser:
@@ -26,6 +27,10 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--version", action="version", version=f"termlay {VERSION}")
     commands = result.add_subparsers(dest="command", required=True)
     commands.add_parser("save", help="select current Ptyxis tabs and save a new layout")
+    opening = commands.add_parser("open", help="open a saved layout in Ptyxis")
+    opening.add_argument("name", nargs="?", help="layout name; omit to select interactively")
+    opening.add_argument("--new-window", action="store_true",
+                         help="open the layout in a new Ptyxis window without prompting")
     commands.add_parser("update", help="select a saved layout and replace its tabs")
     commands.add_parser("delete", help="select saved layouts to delete")
     commands.add_parser("list", aliases=["ls"], help="list saved layout names")
@@ -83,7 +88,7 @@ def confirmed(prompt: str) -> bool:
 
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
-    if argv and not argv[0].startswith("-") and argv[0] not in {"save", "update", "delete", "list", "ls"}:
+    if argv and not argv[0].startswith("-") and argv[0] not in {"save", "open", "update", "delete", "list", "ls"}:
         print(f"termlay: unknown command '{argv[0]}'\nRun 'termlay --help' for usage.", file=sys.stderr)
         return 2
     args = parser().parse_args(argv)
@@ -91,6 +96,37 @@ def main(argv: list[str] | None = None) -> int:
     if args.command in {"list", "ls"}:
         for name in store.list_names():
             print(name)
+        return 0
+    if args.command == "open":
+        if args.name:
+            name = args.name
+        else:
+            if not sys.stdin.isatty():
+                raise TermlayError("open requires a layout name or an interactive terminal")
+            names = selected_names(store, multiple=False)
+            if not names:
+                print("Open cancelled")
+                return 0
+            name = names[0]
+        layout = store.load(name)
+        missing = [directory for directory in layout.directories if not directory.is_dir()]
+        if missing:
+            raise TermlayError("missing layout directories:\n" +
+                               "\n".join(f"  {directory}" for directory in missing))
+        new_window = args.new_window
+        if sys.stdin.isatty() and not new_window:
+            print("Open layout in:\n  1. Current window\n  2. New window")
+            while True:
+                answer = ask("Choose [1-2, q]: ").lower()
+                if answer in {"q", "quit"}:
+                    print("Open cancelled")
+                    return 0
+                if answer in {"1", "2"}:
+                    new_window = answer == "2"
+                    break
+                print("Enter 1, 2, or q.")
+        PtyxisBackend().open_layout(layout, new_window=new_window)
+        print(f"Opened layout '{name}' ({len(layout.directories)} tabs)")
         return 0
     if not sys.stdin.isatty():
         raise TermlayError(f"{args.command} requires an interactive terminal")

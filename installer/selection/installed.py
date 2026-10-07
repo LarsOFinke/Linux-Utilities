@@ -39,23 +39,33 @@ def select_interactively(inventories: dict[str, dict]) -> dict[str, dict[str, se
             descriptions[name] = f"{len(issues)} installed file issue(s); review before changing files"
         elif module in MODULES:
             descriptions[name] = MODULES[module]["description"]
+    lookup = dict(zip(names, choices))
+    chosen_components: dict[str, set[str] | None] = {}
+
+    def resolve_modules(modules: list[str]) -> list[str]:
+        resolved = {}
+        for name in modules:
+            scope, module = lookup[name]
+            components = inventories[scope][module]["components"]
+            if components is None:
+                resolved[name] = None
+                continue
+            labels = {item: MODULES[module]["components"][item]["description"] for item in components}
+            chosen = choose_modules([], False, components, labels,
+                                    heading=f"{MODULES[module]['display_name']} installed sub-modules [{scope}]",
+                                    selection_label="sub-module", allow_back=True)
+            resolved[name] = set(chosen)
+        chosen_components.update(resolved)
+        return modules
+
     selected = choose_categorized_modules(
         names, descriptions,
         {name: MODULES[module]["category"] if module in MODULES else "Other"
-         for name, (_, module) in zip(names, choices)})
+         for name, (_, module) in zip(names, choices)}, resolve_modules)
     result: dict[str, dict[str, set[str] | None]] = {scope: {} for scope in inventories}
-    lookup = dict(zip(names, choices))
     for name in selected:
         scope, module = lookup[name]
-        components = inventories[scope][module]["components"]
-        if components is None:
-            result[scope][module] = None
-            continue
-        labels = {item: MODULES[module]["components"][item]["description"] for item in components}
-        chosen = choose_modules([], False, components, labels,
-                                heading=f"{MODULES[module]['display_name']} installed sub-modules [{scope}]",
-                                selection_label="sub-module")
-        result[scope][module] = set(chosen)
+        result[scope][module] = chosen_components[name]
     return result
 
 

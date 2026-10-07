@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 from catalog import MODULES, REPOSITORY, installed_components
-from selection.available import choose_targets
+from selection.available import BackSelection, choose_targets
 from core.registry import paths, read_registry
 from remote.deploy import deploy, scan_remote
 from setup.post_install import configure
@@ -98,6 +98,8 @@ def main(argv: list[str] | None = None) -> int:
         if not args.no_configure:
             configure(selection, system, test_root)
         return 0
+    except BackSelection:
+        return 3
     except (OSError, RuntimeError, subprocess.CalledProcessError) as error:
         print(f"Linux-Utilities setup: {error}", file=sys.stderr)
         return 1

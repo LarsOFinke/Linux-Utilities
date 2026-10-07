@@ -3,8 +3,13 @@
 from __future__ import annotations
 
 import sys
+from collections.abc import Callable
 
 from catalog import MODULES
+
+
+class BackSelection(Exception):
+    """Return to the preceding interactive menu."""
 
 
 def selection_options(available: list[str],
@@ -23,17 +28,28 @@ def selection_options(available: list[str],
 
 
 def choose_categorized_modules(available: list[str], descriptions: dict[str, str] | None,
-                               categories: dict[str, str]) -> list[str]:
+                               categories: dict[str, str],
+                               resolve_modules: Callable[[list[str]], list[str]] | None = None) -> list[str]:
     """Ask for concerns first, then modules within each chosen concern."""
     category_names = sorted({categories[name] for name in available})
-    selected_categories = choose_modules([], False, category_names, heading="Categories",
-                                          selection_label="category")
-    selected = []
-    for category in selected_categories:
-        names = [name for name in available if categories[name] == category]
-        selected.extend(choose_modules([], False, names, descriptions,
-                                       heading=f"{category} modules"))
-    return selected
+    while True:
+        selected_categories = choose_modules([], False, category_names, heading="Categories",
+                                              selection_label="category", allow_back=True)
+        selected = []
+        try:
+            for category in selected_categories:
+                names = [name for name in available if categories[name] == category]
+                while True:
+                    modules = choose_modules([], False, names, descriptions,
+                                             heading=f"{category} modules", allow_back=True)
+                    try:
+                        selected.extend(resolve_modules(modules) if resolve_modules else modules)
+                    except BackSelection:
+                        continue
+                    break
+        except BackSelection:
+            continue
+        return selected
 
 
 def choose_targets(requested_modules: list[str], requested_components: list[str],
@@ -55,20 +71,24 @@ def choose_targets(requested_modules: list[str], requested_components: list[str]
         if unknown:
             raise RuntimeError(f"Unknown or uninstalled module: {', '.join(sorted(unknown))}")
     else:
-        chosen = []
-        selected_modules = choose_categorized_modules(
-            available, descriptions, {name: MODULES[name]["category"] for name in available})
-        for module in selected_modules:
-            definitions = MODULES.get(module, {}).get("components", {})
-            if not definitions:
-                chosen.append(module)
-                continue
-            names = [name for name in definitions if f"{module}:{name}" in options]
-            labels = {name: definitions[name]["description"] for name in names}
-            selected_names = choose_modules([], False, names, labels,
-                                            heading=f"{MODULES[module]['display_name']} sub-modules",
-                                            selection_label="sub-module")
-            chosen.extend(f"{module}:{name}" for name in selected_names)
+        def resolve_modules(modules: list[str]) -> list[str]:
+            resolved = []
+            for module in modules:
+                definitions = MODULES.get(module, {}).get("components", {})
+                if not definitions:
+                    resolved.append(module)
+                    continue
+                names = [name for name in definitions if f"{module}:{name}" in options]
+                labels = {name: definitions[name]["description"] for name in names}
+                selected_names = choose_modules([], False, names, labels,
+                                                heading=f"{MODULES[module]['display_name']} sub-modules",
+                                                selection_label="sub-module", allow_back=True)
+                resolved.extend(f"{module}:{name}" for name in selected_names)
+            return resolved
+
+        chosen = choose_categorized_modules(
+            available, descriptions, {name: MODULES[name]["category"] for name in available},
+            resolve_modules)
     selection: dict[str, set[str] | None] = {}
     for item in chosen:
         module, sep, name = item.partition(":")
@@ -88,6 +108,7 @@ def choose_modules(
     descriptions: dict[str, str] | None = None,
     heading: str = "Modules",
     selection_label: str = "module",
+    allow_back: bool = False,
 ) -> list[str]:
     if all_modules:
         return available
@@ -104,11 +125,14 @@ def choose_modules(
         print(f"  {index}. {name}{description}")
     while True:
         try:
-            answer = input(f"Select {selection_label} numbers separated by commas, 'all', or 'q': ").strip()
+            suffix = ", 'b' to go back" if allow_back else ""
+            answer = input(f"Select {selection_label} numbers separated by commas, 'all', or 'q'{suffix}: ").strip().lower()
         except EOFError as error:
             raise RuntimeError("Selection cancelled.") from error
         if answer == "all":
             return available
+        if allow_back and answer in {"b", "back"}:
+            raise BackSelection
         if answer.lower() in {"q", "quit"}:
             raise RuntimeError("Selection cancelled.")
         try:
@@ -117,6 +141,7 @@ def choose_modules(
                 raise ValueError("Module number is out of range")
             selected = [available[index - 1] for index in indices]
         except (ValueError, IndexError):
-            print("Enter listed numbers, 'all', or 'q'.")
+            print("Enter listed numbers, 'all', 'b', or 'q'." if allow_back
+                  else "Enter listed numbers, 'all', or 'q'.")
             continue
         return list(dict.fromkeys(selected))
