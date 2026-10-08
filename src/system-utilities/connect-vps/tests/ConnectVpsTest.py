@@ -96,6 +96,30 @@ class ConnectVpsTest(unittest.TestCase):
         with patch.dict(self.cli.__globals__, connect=lambda _: self.fail("SSH should not start")):
             self.assertIn("Cancelled", self.interactive([], ["q"]))
 
+    def test_store_is_closed_before_ssh_starts(self) -> None:
+        active = False
+
+        class FakeStore:
+            def __enter__(self):
+                nonlocal active
+                active = True
+                return self
+
+            def __exit__(self, *_):
+                nonlocal active
+                active = False
+
+            def list(self):
+                return [Connection(None, "selected", "192.0.2.4", "deploy", 22, "key")]
+
+        def connect_after_close(_):
+            self.assertFalse(active)
+            return 0
+
+        with patch.dict(self.cli.__globals__, ConnectionStore=FakeStore, connect=connect_after_close):
+            self.interactive([], ["1"])
+        self.assertFalse(active)
+
     def test_explicit_private_key_and_public_key_rejection(self) -> None:
         private_key = self.root / "id_example"
         private_key.write_text("fake private key")
@@ -119,15 +143,25 @@ class ConnectVpsTest(unittest.TestCase):
             self.assertIn("PasswordAuthentication=no", command)
             self.assertIn("IdentitiesOnly=yes", command)
             self.assertIn("BatchMode=no", command)
+            self.assertIn("StrictHostKeyChecking=ask", command)
+            self.assertIn("UserKnownHostsFile=~/.ssh/known_hosts", command)
+            self.assertEqual(command[command.index("-F") + 1], "none")
             self.assertEqual(connect(Connection(None, "default", "192.0.2.2", "root", 22,
                                                 "key")), 0)
-            self.assertNotIn("-i", run.call_args.args[0])
+            default_command = run.call_args.args[0]
+            self.assertNotIn("-i", default_command)
+            self.assertNotIn("-F", default_command)
+            self.assertIn("StrictHostKeyChecking=ask", default_command)
+            self.assertIn("UserKnownHostsFile=~/.ssh/known_hosts", default_command)
             self.assertEqual(connect(Connection(None, "password", "2001:db8::1", "root", 2200,
                                                 "password")), 0)
             command = run.call_args.args[0]
             self.assertEqual(command[-2:], ["--", "2001:db8::1"])
             self.assertIn("PubkeyAuthentication=no", command)
             self.assertNotIn("-i", command)
+            self.assertNotIn("-F", command)
+            self.assertIn("StrictHostKeyChecking=ask", command)
+            self.assertIn("UserKnownHostsFile=~/.ssh/known_hosts", command)
         private_key.unlink()
         with patch("ssh_connection.shutil.which", return_value="/usr/bin/ssh"):
             with self.assertRaisesRegex(ConnectVpsError, "private key not found"):

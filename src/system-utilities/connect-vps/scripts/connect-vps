@@ -24,6 +24,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     if not sys.stdin.isatty():
         raise ConnectVpsError("connect-vps requires an interactive terminal")
+    connection_to_open = None
     with ConnectionStore() as store:
         if args.command == "add":
             item = prompt_connection()
@@ -45,7 +46,9 @@ def main(argv: list[str] | None = None) -> int:
                 else:
                     print("Cancelled")
             else:
-                return connect(item)
+                connection_to_open = item
+    if connection_to_open is not None:
+        return connect(connection_to_open)
     return 0
 
 
