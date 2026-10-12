@@ -16,6 +16,7 @@
     "system": "src/system-utilities/system/module.json",
     "termlay": "src/system-utilities/termlay/module.json",
     "connect-vps": "src/system-utilities/connect-vps/module.json",
+    "loc-rank": "src/system-utilities/loc-rank/module.json",
     "system-update": "src/server-services/system-update/module.json",
     "privacy": "src/data-privacy/privacy/module.json",
     "canary": "src/monitoring/canary/module.json",

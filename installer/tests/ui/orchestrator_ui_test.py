@@ -52,7 +52,11 @@ def main() -> None:
             )
             os.close(slave)
             slave = -1
-            os.write(master, b"1\n4\n2\nb\nb\nb\nq\n")
+            system_modules = sorted(name for name, manifest_path in CATALOG.items()
+                                    if json.loads((REPOSITORY / manifest_path).read_text(
+                                        encoding="utf-8"))["category"] == "System utilities")
+            system_index = system_modules.index("system") + 1
+            os.write(master, f"1\n4\n{system_index}\nb\nb\nb\nq\n".encode())
             if process.wait(timeout=15) != 0:
                 raise AssertionError("Back navigation from sub-module failed")
             output = bytearray()

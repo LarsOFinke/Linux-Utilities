@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "id": "loc-rank",
+  "display_name": "Source line ranking (prototype)",
+  "category": "System utilities",
+  "subcategory": "Development",
+  "description": "rank source files by physical line count",
+  "setup": "setup.sh",
+  "documentation": "README.md",
+  "commands": {
+    "loc-rank": "scripts/loc-rank"
+  },
+  "examples": [],
+  "cron_templates": [],
+  "scopes": ["user", "system"]
+}

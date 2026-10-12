@@ -27,12 +27,16 @@ if (( ${#caches[@]} == 0 )); then
     echo 'No generated caches found.'
     exit 0
 fi
+failed=false
 for cache in "${caches[@]}"; do
     [[ -d "$cache" && ! -L "$cache" ]] || continue
     if [[ "$dry_run" == true ]]; then
         printf 'Would remove: %s\n' "$cache"
-    else
-        rm -r -- "$cache"
+    elif rm -r -- "$cache"; then
         printf 'Removed: %s\n' "$cache"
+    else
+        printf 'Could not remove: %s\n' "$cache" >&2
+        failed=true
     fi
 done
+[[ "$failed" == false ]]

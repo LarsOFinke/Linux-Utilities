@@ -14,6 +14,7 @@ Setup, update, and uninstall require Python 3.9 or newer. Runtime requirements a
 ./main.sh setup --module system-update
 ./main.sh setup --module termlay
 ./main.sh setup --module connect-vps
+./main.sh setup --module loc-rank
 ./main.sh setup --module log-scout
 ./main.sh setup --component system:h848-audio
 sudo ./main.sh setup --system --all
@@ -61,6 +62,7 @@ Installed commands:
 | System utilities / Workstation setup | System utilities (`system`) | `install-amd-gaming`, `install-h848-audio-fix`, `uninstall-h848-audio-fix` |
 | System utilities / Terminal workflow | Terminal layouts (`termlay`) | `termlay` |
 | System utilities / Remote access | Saved VPS connections (`connect-vps`) | `connect-vps` |
+| System utilities / Development | Source line ranking prototype (`loc-rank`) | `loc-rank` |
 | Server services / Package maintenance | Manual APT updates (`system-update`) | `update-system` |
 | Server services / Package maintenance | Ubuntu automatic updates (`ubuntu-updates`) | `ubuntu-updates-configure`, `ubuntu-updates-status`, `ubuntu-updates-logs`, `ubuntu-updates-dry-run`, `ubuntu-updates-run`, `ubuntu-updates-restore` (system install) |
 | Server services / Web gateway | NGINX and Certbot setup (`vps-gateway`) | `vps-gateway-configure`, `vps-gateway-status`, `vps-gateway-init`, `vps-gateway-add`, `vps-gateway-site-list`, `vps-gateway-site-render`, `vps-gateway-site-import` (system install) |
@@ -76,6 +78,8 @@ The previous multi-command entry points (`privacy-cleanup`, `ubuntu-updates`, `c
 `termlay save` selects tabs from the focused Ptyxis window and names a new layout. `termlay open` lets you choose a saved layout and whether to open it in the current or a new Ptyxis window; `termlay open NAME --new-window` selects a new window directly. `termlay update` selects a layout and replacement tabs, and `termlay delete` selects layouts for removal. `termlay list` (or `termlay ls`) prints saved names. Layouts store working directories under the XDG configuration directory. See the [terminal layouts guide](src/system-utilities/termlay/README.md) for storage and limitations.
 
 `connect-vps` selects a saved IP address and opens SSH. Use `connect-vps add`, `connect-vps update`, and `connect-vps delete` to manage entries interactively. SSH key or agent authentication is the default; password entries let SSH prompt when connecting. The private SQLite registry stores connection settings but no passwords or keys. See the [VPS connection guide](src/system-utilities/connect-vps/README.md).
+
+`loc-rank` groups source files by type and lists each group by physical line count, with the largest file last. Run `loc-rank` in a project or pass a directory; `--top N` shows only the N largest files across all groups. It skips common dependency and build directories. See the [source line ranking guide](src/system-utilities/loc-rank/README.md).
 
 `log-scout` scans recent journal entries or selected text logs, summarizes warning/error
 categories, and lets you drill into repeated-message groups and representative examples.
@@ -94,7 +98,7 @@ configuration/   shared installation catalog and its documentation
 src/
   data-privacy/    backup/, privacy/
   monitoring/      network/, canary/, log-scout/
-  system-utilities/ system/, termlay/, connect-vps/
+  system-utilities/ system/, termlay/, connect-vps/, loc-rank/
   server-services/ system-update/, ubuntu-updates/, vps-gateway/
 .agents/          compact agent project map, qualities, debugging, cache
 ```

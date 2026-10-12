@@ -43,6 +43,7 @@ def main() -> int:
                     for path in sorted(Path("installer/tests").rglob("*_test.py")))
     for path in ("src/system-utilities/termlay/tests/TermlayTest.py",
                  "src/system-utilities/connect-vps/tests/ConnectVpsTest.py",
+                 "src/system-utilities/loc-rank/tests/LocRankTest.py",
                  "src/monitoring/log-scout/tests/LogScoutTest.py"):
         commands.append((path, [sys.executable, path]))
     for concern in ("lifecycle", "ssh", "tools"):

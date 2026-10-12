@@ -12,6 +12,7 @@ Read this compact map first, then the relevant module README. Root setup, update
 | System utilities | `system` | `src/system-utilities/system/` | `tests/h848_uninstall_test.sh` |
 | System utilities | `termlay` | `src/system-utilities/termlay/` | `tests/TermlayTest.py` |
 | System utilities | `connect-vps` | `src/system-utilities/connect-vps/` | `tests/ConnectVpsTest.py` |
+| System utilities | `loc-rank` | `src/system-utilities/loc-rank/` | `tests/LocRankTest.py` |
 | Server services | `system-update` | `src/server-services/system-update/` | `tests/update_system_test.sh` |
 | Server services | `ubuntu-updates` | `src/server-services/ubuntu-updates/` | `tests/ubuntu_updates_test.sh` |
 | Server services | `vps-gateway` | `src/server-services/vps-gateway/` | `tests/vps_gateway_test.sh` |
@@ -28,6 +29,8 @@ Shared installs, portable installs, and local remote-deployment records serializ
 Its `scripts/layout/` and `scripts/ptyxis/` directories split storage from terminal integration. Each class has a PascalCase file; function modules keep path validation, accessibility reading, process lookup, and capture flow separate.
 
 `connect-vps` is an interactive SSH picker installable in user or system scope. Each caller has a separate SQLite database. `add`, `update`, and `delete` manage named IP addresses in `$XDG_DATA_HOME/connect-vps/connections.sqlite3`; no subcommand selects and connects after closing the database. Key authentication defaults to OpenSSH identities/agent when the private key path is blank. An explicit key uses `ssh -F none` to exclude additional configured identities. All modes force `StrictHostKeyChecking=ask` and `~/.ssh/known_hosts`; password mode delegates the prompt to SSH and stores no secret. The module uses private 0700/0600 storage and preserves the database on uninstall.
+
+`loc-rank` is a read-only source line counter under System utilities. It scans the current or named directory, groups recognized source files by extension or script shebang, and orders groups by their largest file so the largest result is last. It skips common generated directories and symlinks and supports `--top N` across all groups. Its focused tests cover grouping, sorting, filtering, and argument errors.
 
 The root wrapper also accepts `--ssh TARGET` for module and component setup/removal. It sends a portable module bundle, records successful remote deployments in the local user registry, and scans the target's portable state for selection and status. Remote removal still runs the module's portable hash checks. Network capture accepts named profiles plus port and IPv4 subnet filters; its module-owned capture registry records settings and checks whether the recorded PID is active.
 

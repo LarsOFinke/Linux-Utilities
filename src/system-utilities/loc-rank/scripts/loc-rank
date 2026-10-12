@@ -1,0 +1,128 @@
+#!/usr/bin/env python3
+"""Show source files by physical line count, largest at the bottom."""
+
+from __future__ import annotations
+
+import argparse
+import os
+import sys
+from pathlib import Path
+
+
+SOURCE_SUFFIXES = {
+    ".asm", ".bash", ".c", ".cc", ".clj", ".cpp", ".cs", ".css",
+    ".cxx", ".dart", ".ex", ".exs", ".go", ".h", ".hh", ".hpp",
+    ".hxx", ".html", ".java", ".jl", ".js", ".jsx", ".kt", ".kts",
+    ".lua", ".m", ".mm", ".php", ".pl", ".py", ".r", ".rb",
+    ".rs", ".s", ".scala", ".scss", ".sh", ".sql", ".svelte",
+    ".swift", ".ts", ".tsx", ".vue", ".zig",
+}
+SCRIPT_INTERPRETERS = {"bash", "dash", "node", "perl", "php", "python", "python2",
+                       "python3", "ruby", "sh", "zsh"}
+SKIP_DIRECTORIES = {
+    ".git", ".hg", ".svn", ".venv", "venv", "node_modules", "vendor",
+    "__pycache__", "build", "dist", "target", "coverage", ".coverage",
+    ".mypy_cache", ".pytest_cache", ".ruff_cache", ".tox", ".next",
+}
+
+
+def script_interpreter(first_line: bytes) -> str | None:
+    if not first_line.startswith(b"#!"):
+        return None
+    words = first_line[2:].decode("ascii", errors="ignore").strip().split()
+    if not words:
+        return None
+    interpreter = Path(words[0]).name
+    if interpreter == "env":
+        words = [word for word in words[1:] if not word.startswith("-")]
+        if not words:
+            return None
+        interpreter = Path(words[0]).name
+    if interpreter in SCRIPT_INTERPRETERS or interpreter.startswith("python3."):
+        return "python" if interpreter.startswith("python") else interpreter
+    return None
+
+
+def count_source_lines(path: Path) -> tuple[int, str] | None:
+    with path.open("rb") as source:
+        first = source.read(8192)
+        file_type = path.suffix.lower()
+        if file_type not in SOURCE_SUFFIXES:
+            interpreter = script_interpreter(first.split(b"\n", 1)[0])
+            file_type = f"script ({interpreter})" if interpreter else ""
+        if not file_type:
+            return None
+        count = first.count(b"\n")
+        last = first[-1:] if first else b""
+        if b"\0" in first:
+            return None
+        while chunk := source.read(65536):
+            if b"\0" in chunk:
+                return None
+            count += chunk.count(b"\n")
+            last = chunk[-1:]
+        return count + int(bool(last) and last != b"\n"), file_type
+
+
+def positive_integer(value: str) -> int:
+    number = int(value)
+    if number < 1:
+        raise argparse.ArgumentTypeError("must be greater than zero")
+    return number
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("directory", nargs="?", type=Path, default=Path.cwd(),
+                        help="directory to scan (default: current directory)")
+    parser.add_argument("--top", type=positive_integer, metavar="N",
+                        help="show only the N largest files")
+    args = parser.parse_args(argv)
+    root = args.directory.expanduser()
+    if not root.is_dir():
+        parser.error(f"not a directory: {root}")
+
+    results: list[tuple[int, str, str]] = []
+    errors: list[str] = []
+
+    def walk_error(error: OSError) -> None:
+        errors.append(str(error))
+
+    for current, directories, files in os.walk(root, followlinks=False, onerror=walk_error):
+        directories[:] = sorted(name for name in directories
+                                if not name.startswith(".") and name not in SKIP_DIRECTORIES
+                                and not (Path(current) / name).is_symlink())
+        for name in files:
+            path = Path(current) / name
+            if path.is_symlink():
+                continue
+            try:
+                source = count_source_lines(path)
+            except OSError as error:
+                errors.append(f"{path}: {error}")
+                continue
+            if source is not None:
+                lines, file_type = source
+                results.append((lines, str(path.relative_to(root)), file_type))
+
+    results.sort(key=lambda item: (-item[0], item[1]))
+    selected = results[:args.top]
+    groups: dict[str, list[tuple[int, str]]] = {}
+    for lines, name, file_type in selected:
+        groups.setdefault(file_type, []).append((lines, name))
+    ordered_groups = sorted(groups, key=lambda file_type: (max(lines for lines, _ in groups[file_type]),
+                                                            file_type))
+    for index, file_type in enumerate(ordered_groups):
+        if index:
+            print()
+        print(f"[{file_type}]")
+        print("LINES  FILE")
+        for lines, name in sorted(groups[file_type]):
+            print(f"{lines:>5}  {name}")
+    for error in errors:
+        print(f"loc-rank: {error}", file=sys.stderr)
+    return 1 if errors else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
