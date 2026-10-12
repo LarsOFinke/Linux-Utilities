@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import pty
@@ -109,6 +110,22 @@ def main() -> None:
         run(SYSTEM / "setup.sh", "--component", "amd-gaming", environment=environment)
         assert set(records(registry)["system"]["commands"]) == {"install-amd-gaming"}
         run(SYSTEM / "setup.sh", "--component", "h848-audio", environment=environment)
+        state = json.loads(registry.read_text(encoding="utf-8"))
+        for name in ("h848_wireplumber_05.conf", "h848_audio_guard.service"):
+            source = SYSTEM / "components/h848-audio" / name
+            target = binary / name
+            target.write_bytes(source.read_bytes())
+            state["modules"]["system"]["commands"][name] = {
+                "path": str(target), "source": str(source),
+                "sha256": hashlib.sha256(target.read_bytes()).hexdigest(),
+            }
+        registry.write_text(json.dumps(state), encoding="utf-8")
+        run(REPOSITORY / "scripts/update.sh", "--component", "system:h848-audio",
+            environment=environment)
+        assert not (binary / "h848_wireplumber_05.conf").exists()
+        assert not (binary / "h848_audio_guard.service").exists()
+        assert set(records(registry)["system"]["commands"]) == {
+            "install-amd-gaming", "install-h848-audio-fix", "uninstall-h848-audio-fix"}
         run(SYSTEM / "uninstall.sh", "--component", "amd-gaming", environment=environment)
         assert (binary / "install-h848-audio-fix").exists()
         run(SYSTEM / "uninstall.sh", "--component", "h848-audio", environment=environment)

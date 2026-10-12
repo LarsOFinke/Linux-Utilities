@@ -6,6 +6,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from .bundle import build as build_bundle
 from .files import atomic_copy, atomic_json, digest, local_path, restore_snapshot
 from .install_plan import prepare
 from .state import fail
@@ -24,8 +25,23 @@ def install(bin_dir: Path, state_path: Path, root: Path, system: bool,
             if not output.is_file():
                 fail(f"Build script produced no output: {script}")
             built[name] = output
+        if manifest.get("bundle_commands"):
+            files = {name: local_path(source, module) for name, source in manifest["commands"].items()}
+            files.update({name: local_path(source, module)
+                          for name, source in manifest.get("bundle_files", {}).items()})
+            executable = set(manifest["commands"]) - set(manifest.get("non_executable_commands", []))
+            prebuilt = dict(built)
+            for name in manifest["bundle_commands"]:
+                if name not in plan.writing:
+                    continue
+                sources = {key: prebuilt.get(key, path) for key, path in files.items()}
+                output = Path(directory) / name
+                build_bundle(name, sources, executable, output)
+                built[name] = output
         try:
             installed = {} if selected is None else dict(plan.previous)
+            for path in plan.stale:
+                installed.pop(path.name, None)
             for name, source in plan.commands.items():
                 target = bin_dir / name
                 atomic_copy(built.get(name, local_path(source, module)), target, name not in manifest.get("non_executable_commands", []))

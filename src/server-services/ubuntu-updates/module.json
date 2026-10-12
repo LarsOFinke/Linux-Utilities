@@ -14,16 +14,14 @@
     "ubuntu-updates-logs": "scripts/ubuntu_updates_workflow.sh",
     "ubuntu-updates-dry-run": "scripts/ubuntu_updates_workflow.sh",
     "ubuntu-updates-run": "scripts/ubuntu_updates_workflow.sh",
-    "ubuntu-updates-restore": "scripts/ubuntu_updates_workflow.sh",
+    "ubuntu-updates-restore": "scripts/ubuntu_updates_workflow.sh"
+  },
+  "bundle_commands": ["ubuntu-updates", "ubuntu-updates-configure", "ubuntu-updates-status", "ubuntu-updates-logs", "ubuntu-updates-dry-run", "ubuntu-updates-run", "ubuntu-updates-restore"],
+  "bundle_files": {
     "ubuntu_updates_state.sh": "scripts/ubuntu_updates_state.sh",
     "ubuntu_updates_policy.sh": "scripts/ubuntu_updates_policy.sh",
     "ubuntu_updates_actions.sh": "scripts/ubuntu_updates_actions.sh"
   },
-  "non_executable_commands": [
-    "ubuntu_updates_state.sh",
-    "ubuntu_updates_policy.sh",
-    "ubuntu_updates_actions.sh"
-  ],
   "examples": [],
   "cron_templates": [],
   "runtime_configs": {

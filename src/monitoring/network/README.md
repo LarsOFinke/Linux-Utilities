@@ -1,5 +1,7 @@
 # Packet capture
 
+Setup and update need `cc` and install `capture-traffic` as one ELF executable with its Python registry helper embedded. An update removes the older registry-owned helper file. Python 3.9+ is needed to launch the command; capture files and the optional cron template remain separate.
+
 Install system-wide from the repository root with `sudo src/monitoring/network/setup.sh --system` or `sudo ./main.sh setup --system --module network`, then run `sudo capture-traffic`. For remote deployment, use `./main.sh setup --ssh TARGET --system --module network` from the repository root. The command manages a rolling capture of SSH, HTTP, and HTTPS packets.
 
 It stops only the `tcpdump` process recorded in its PID file after checking the command line, verifies and archives the previous pcap under a unique name, and starts a new capture. It refuses a PID file naming an unrelated live process. Stop a capture launched by an older version manually before first use of the managed version.

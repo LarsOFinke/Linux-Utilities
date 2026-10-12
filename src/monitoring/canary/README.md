@@ -1,5 +1,7 @@
 # Canary file and SSH monitoring
 
+Setup and update need `cc`. `fs-tracker` remains a native C executable; the Canary control and SSH commands are single ELF executables with their Python helpers embedded. An update removes older registry-owned helper files from the command directory. Python 3.9+ is needed to launch the control and SSH commands; configured services and state remain separate.
+
 This system-only module provides named fanotify file sensors and one SSH journal watcher. Both record JSONL. Services are created only when you choose to configure them. File monitoring needs Linux fanotify support and root privileges; setup needs a C compiler and Python 3.9+. Live services need systemd, and SSH watching needs `journalctl` plus OpenSSH server logs.
 
 ```bash
@@ -27,7 +29,7 @@ sudo canary-ssh remove --yes
 
 `canary-control` keeps its original subcommands. `canary-remove-all` is available for intentional removal of every managed service.
 
-Setup compiles `fs-tracker` into a temporary directory before the shared installer changes installed files. It installs the tracker, Canary controls, SSH watcher, and their helpers in `/usr/local/bin`, recording their hashes in the shared registry. The install transaction does not start a service or create a lure. `canary-control configure` requires an existing target file and writes `/etc/fs-tracker/<name>.conf`, `/etc/systemd/system/fs-file-monitor-<name>.service`, and private ownership state under `/var/lib/shell-scripts/canary/`. It enables and starts only that named service. Names contain letters, digits, underscores, or hyphens. `--action /absolute/executable` optionally invokes an executable after each file event.
+Setup compiles `fs-tracker` into a temporary directory before the shared installer changes installed files. It installs the tracker, Canary controls, and SSH watcher in `/usr/local/bin`, recording their hashes in the shared registry. The install transaction does not start a service or create a lure. `canary-control configure` requires an existing target file and writes `/etc/fs-tracker/<name>.conf`, `/etc/systemd/system/fs-file-monitor-<name>.service`, and private ownership state under `/var/lib/shell-scripts/canary/`. It enables and starts only that named service. Names contain letters, digits, underscores, or hyphens. `--action /absolute/executable` optionally invokes an executable after each file event.
 
 For remote deployment, run `./main.sh setup --ssh TARGET --system --module canary` from the repository root. The SSH archive includes the module-local build script and the canonical portable helper. Remote setup and update do not run configuration prompts; run `sudo canary-ssh setup` or `sudo canary-ssh update` on the target with the desired options.
 

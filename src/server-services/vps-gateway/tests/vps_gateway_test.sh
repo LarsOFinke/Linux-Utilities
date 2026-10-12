@@ -324,12 +324,13 @@ if printf '5\nnoinclude.example.org\n/srv/www/noinclude\nn\ny\n' | SHELL_SCRIPTS
 fi
 [[ ! -e "$missing_nginx/conf.d/vps-gateway.conf" ]]
 
+cp -- "$command" "$test_dir/command-original"
 printf '# local edit\n' >> "$command"
 if "$repository/scripts/uninstall.sh" --system --module vps-gateway >/dev/null 2>&1; then
     echo 'Locally modified command should block uninstall' >&2
     exit 1
 fi
-sed -i '$d' "$command"
+cp -- "$test_dir/command-original" "$command"
 "$repository/scripts/uninstall.sh" --system --module vps-gateway
 [[ ! -e "$command" ]]
 [[ ! -e "$site_command" ]]

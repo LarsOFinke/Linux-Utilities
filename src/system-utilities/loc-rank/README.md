@@ -1,5 +1,7 @@
 # Source line ranking (`loc-rank`)
 
+Setup and update need `cc` and install `loc-rank` as one ELF executable. Python 3.9+ is needed to launch it. An update replaces the registry-owned command after checking its hash.
+
 `loc-rank` groups source files by extension and lists each group from fewest to most physical lines. Groups are ordered by their largest file, so the largest file overall appears at the bottom of the terminal. Extensionless scripts use a `script (interpreter)` group based on their shebang. It counts blank lines and comments, including a final line without a newline. Equal counts sort by relative path. `--top N` selects the N largest files across all groups before grouping them.
 
 ```bash

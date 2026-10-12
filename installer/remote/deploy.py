@@ -48,7 +48,8 @@ def archive_module(module: str) -> bytes:
         files.add(REPOSITORY / path)
     required = [definition["manifest"], definition["documentation"],
                 *definition["commands"].values(), *definition["examples"],
-                *definition["cron_templates"], *definition["build_commands"].values()]
+                *definition["cron_templates"], *definition["build_commands"].values(),
+                *definition["bundle_files"].values()]
     files.update(REPOSITORY / name for name in required)
     for path in (REPOSITORY / name for name in required):
         if not path.is_file() or path.is_symlink():

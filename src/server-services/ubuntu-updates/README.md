@@ -1,5 +1,7 @@
 # Ubuntu automatic updates
 
+Setup and update need `cc` and install one ELF executable per command. State, policy, and action helpers are embedded; an update removes older registry-owned helper scripts from the command directory. Python 3.9+ is needed to launch the commands. APT configuration and state files remain separate.
+
 This module adapts the policy and workflows from the former separate `ubuntu-unattended-upgrades` project. It uses Ubuntu's native `unattended-upgrades` and APT timers. It supports Ubuntu hosts with systemd and requires `apt`, `systemctl`, `flock`, and `sudo` for host changes. It does not create another schedule.
 
 Install the command system-wide from the repository root with `./main.sh setup --module ubuntu-updates` or `sudo ./main.sh setup --system --module ubuntu-updates`. For remote deployment, use `./main.sh setup --ssh TARGET --system --module ubuntu-updates` from the repository root. The root setup UI automatically selects system scope for this module. Installation alone does not change APT policy, timers, or packages. The command works from any directory:

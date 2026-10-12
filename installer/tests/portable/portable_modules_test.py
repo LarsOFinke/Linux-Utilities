@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import io
 import os
@@ -10,6 +11,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import zipfile
 from pathlib import Path
 
 REPOSITORY = Path(__file__).resolve().parents[3]
@@ -76,6 +78,12 @@ def main() -> None:
             bin_dir = install_root / "usr/local/bin" if system else home / ".local/bin"
             for command in manifest["commands"]:
                 assert (bin_dir / command).is_file(), (name, command)
+                assert (bin_dir / command).read_bytes().startswith(b"\x7fELF"), (name, command)
+                if command in manifest.get("bundle_commands", []):
+                    with zipfile.ZipFile(bin_dir / command) as embedded:
+                        assert embedded.read(command).startswith(b"#!"), (name, command)
+            for bundled_file in manifest.get("bundle_files", {}):
+                assert not (bin_dir / bundled_file).exists(), (name, bundled_file)
             if name == "backup":
                 source = root / "homes/sampleuser"
                 source.mkdir(parents=True)
@@ -101,15 +109,18 @@ def main() -> None:
                 run([bin_dir / "canary-control", "configure", "demo", "--path", str(target),
                      "--log", str(root / "events.jsonl")], environment, cwd=root)
             if name == "system":
-                # An older install had inline H848 templates. Refresh adds the new files.
+                # An older install recorded H848 templates beside its commands.
                 state_path = home / ".local/state/shell-scripts/portable/system.json"
                 state = json.loads(state_path.read_text(encoding="utf-8"))
                 for command in ("h848_wireplumber_05.conf", "h848_wireplumber_04.lua", "h848_audio_guard.service"):
-                    (bin_dir / command).unlink()
-                    del state["commands"][command]
+                    source = REPOSITORY / "src/system-utilities/system/components/h848-audio" / command
+                    target = bin_dir / command
+                    target.write_bytes(source.read_bytes())
+                    state["commands"][command] = {"path": str(target),
+                                                   "sha256": hashlib.sha256(target.read_bytes()).hexdigest()}
                 state_path.write_text(json.dumps(state), encoding="utf-8")
                 run(["python3", bundle / "portable_module.py", "update", "--component", "h848-audio"], environment, cwd=root)
-                assert all((bin_dir / command).is_file() for command in
+                assert all(not (bin_dir / command).exists() for command in
                            ("h848_wireplumber_05.conf", "h848_wireplumber_04.lua", "h848_audio_guard.service"))
             run(["python3", bundle / "portable_module.py", "uninstall", *args], environment, cwd=root)
             for command in manifest["commands"]:

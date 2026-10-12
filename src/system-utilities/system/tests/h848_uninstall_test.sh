@@ -40,8 +40,7 @@ printf 'old generated file\n' >"$legacy_dir/51-h848-soft-mixer.lua.bak"
 printf 'installed\n' >"$lua_config"
 "$project_root/src/system-utilities/system/setup.sh" --no-configure >/dev/null
 for template in h848_wireplumber_05.conf h848_wireplumber_04.lua h848_audio_guard.service; do
-    cmp -s "$project_root/src/system-utilities/system/components/h848-audio/$template" \
-        "$HOME/.local/bin/$template"
+    [[ ! -e "$HOME/.local/bin/$template" ]]
 done
 "$HOME/.local/bin/uninstall-h848-audio-fix" >/dev/null
 [[ ! -e "$lua_config" ]]

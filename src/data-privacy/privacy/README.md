@@ -1,5 +1,7 @@
 # History and log cleanup
 
+Setup and update need `cc` and install one ELF executable per command. Policy, schedule, and cleanup helpers are embedded; an update removes older registry-owned helper scripts from the command directory. Python 3.9+ is needed to launch the commands. Configurations and schedules remain separate managed files.
+
 Install from the repository root with `src/data-privacy/privacy/setup.sh` or `./main.sh setup --module privacy`. Run `privacy-cleanup configure` after a noninteractive installation when you want a cleanup schedule. Repository setup offers to configure retention interactively; `--no-configure` leaves that step for later. Its default mode acts only on the current user's files and needs no sudo:
 
 The daily user schedule requires `crontab` and a running cron service.

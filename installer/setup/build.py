@@ -6,6 +6,7 @@ import subprocess
 from pathlib import Path
 
 from catalog import MODULES, REPOSITORY, component_commands
+from portable.portable_support.bundle import build as build_bundle
 
 def build_commands(selected: list[str], directory: Path,
                    components: dict[str, set[str] | None] | None = None) -> dict[tuple[str, str], Path]:
@@ -23,5 +24,17 @@ def build_commands(selected: list[str], directory: Path,
             subprocess.run([str(path), str(output)], check=True)
             if not output.is_file():
                 raise RuntimeError(f"Build script did not produce {output}")
+            built[module, name] = output
+        definition = MODULES[module]
+        files = {name: REPOSITORY / source for name, source in definition["commands"].items()}
+        files.update({name: REPOSITORY / source for name, source in definition["bundle_files"].items()})
+        executable = set(definition["commands"]) - set(definition.get("non_executable_commands", []))
+        prebuilt = dict(built)
+        for name in definition["bundle_commands"]:
+            if allowed is not None and name not in allowed:
+                continue
+            sources = {key: prebuilt.get((module, key), path) for key, path in files.items()}
+            output = directory / f"{module}-{name}"
+            build_bundle(name, sources, executable, output)
             built[module, name] = output
     return built

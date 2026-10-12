@@ -68,9 +68,10 @@ def installed_components(state: dict, manifest: dict) -> set[str]:
         names = {name for name, item in components.items() if owned.intersection(item["commands"])}
     owned = set(state["commands"])
     expected = component_commands(names, manifest)
-    legacy_h848 = {"h848_wireplumber_05.conf", "h848_wireplumber_04.lua", "h848_audio_guard.service"}
-    compatible = (manifest["id"] == "system" and owned <= expected
-                  and expected - owned <= legacy_h848)
+    obsolete = (set(components.get("h848-audio", {}).get("bundle_files", []))
+                if manifest["id"] == "system" and "h848-audio" in names else set())
+    compatible = (manifest["id"] == "system" and owned - expected <= obsolete
+                  and expected <= owned)
     if owned != expected and not compatible:
         fail("Cannot infer components from standalone installation state")
     return names

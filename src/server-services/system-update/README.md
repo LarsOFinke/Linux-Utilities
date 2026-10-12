@@ -1,5 +1,7 @@
 # Manual APT updates
 
+Setup and update need `cc` and install `update-system` as one ELF executable. Python 3.9+ is needed to launch it. An update replaces the registry-owned command after checking its hash.
+
 Install `update-system` independently with `./main.sh setup --module system-update` from the repository root or `src/server-services/system-update/setup.sh` directly. The default command install is in the current user's `~/.local/bin`; use `--system` for a system-wide command. The direct entry point requires the repository installer; SSH deployment bundles the canonical portable helper temporarily.
 
 Run `update-system` to refresh APT package lists and install available upgrades with `apt upgrade -y`. It uses `sudo` when run by a normal user. It stops when `apt update` fails and accepts no arguments. It does not perform a distribution upgrade or package removal.

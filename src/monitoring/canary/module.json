@@ -17,18 +17,15 @@
     "canary-remove": "scripts/canary_workflow.sh",
     "canary-remove-all": "scripts/canary_workflow.sh",
     "canary-ssh": "scripts/ssh/canary-ssh",
-    "canary-ssh-watcher": "scripts/ssh/canary_ssh_watcher.py",
+    "canary-ssh-watcher": "scripts/ssh/canary_ssh_watcher.py"
+  },
+  "bundle_commands": ["canary-control", "canary-configure", "canary-status", "canary-start", "canary-stop", "canary-remove", "canary-remove-all", "canary-ssh", "canary-ssh-watcher"],
+  "bundle_files": {
     "canary_ssh_events.py": "scripts/ssh/canary_ssh_events.py",
     "canary_ssh_lifecycle.py": "scripts/ssh/canary_ssh_lifecycle.py",
     "canary_state.py": "scripts/canary_state.py",
     "canary_lifecycle.py": "scripts/canary_lifecycle.py"
   },
-  "non_executable_commands": [
-    "canary_state.py",
-    "canary_lifecycle.py",
-    "canary_ssh_events.py",
-    "canary_ssh_lifecycle.py"
-  ],
   "examples": [
     "configuration/fs-tracker.cfg.example"
   ],

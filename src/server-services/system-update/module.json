@@ -10,6 +10,7 @@
   "commands": {
     "update-system": "scripts/update_system.sh"
   },
+  "bundle_commands": ["update-system"],
   "examples": [],
   "cron_templates": [],
   "scopes": ["user", "system"]

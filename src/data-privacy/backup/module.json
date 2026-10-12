@@ -11,12 +11,10 @@
     "backup-home": "scripts/snapshot/backup_home.sh",
     "backup-home-cron": "scripts/snapshot/backup_home.sh",
     "backup-home-prune": "scripts/snapshot/backup_home_prune.sh",
-    "fetch-remote-backup": "scripts/remote/fetch_remote_backup.sh",
-    "backup_home_common.sh": "scripts/snapshot/backup_home_common.sh"
+    "fetch-remote-backup": "scripts/remote/fetch_remote_backup.sh"
   },
-  "non_executable_commands": [
-    "backup_home_common.sh"
-  ],
+  "bundle_commands": ["backup-home", "backup-home-cron", "backup-home-prune", "fetch-remote-backup"],
+  "bundle_files": {"backup_home_common.sh": "scripts/snapshot/backup_home_common.sh"},
   "examples": [
     "configuration/backup.env.example"
   ],

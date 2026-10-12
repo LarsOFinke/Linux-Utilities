@@ -31,6 +31,29 @@ def asset_definitions(module: str, manifest: Path, source: dict, commands: dict)
         name: source_path(manifest, script, f"{module}.build_commands.{name}")
         for name, script in builds.items()
     }
+    bundles = source.get("bundle_commands", [])
+    non_executable = set(source.get("non_executable_commands", []))
+    if (not isinstance(bundles, list)
+            or any(not isinstance(name, str) or name not in commands or name in non_executable
+                   for name in bundles)
+            or len(set(bundles)) != len(bundles)):
+        raise SystemExit(f"Invalid {module}.bundle_commands in {manifest}")
+    result["bundle_commands"] = bundles
+    files = source.get("bundle_files", {})
+    if (not isinstance(files, dict) or any(
+            not isinstance(name, str) or not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]*", name)
+            or name in commands for name in files)):
+        raise SystemExit(f"Invalid {module}.bundle_files in {manifest}")
+    result["bundle_files"] = {
+        name: source_path(manifest, script, f"{module}.bundle_files.{name}")
+        for name, script in files.items()
+    }
+    for component, item in source.get("components", {}).items():
+        embedded = item.get("bundle_files", [])
+        if (not isinstance(embedded, list)
+                or any(not isinstance(name, str) or name not in files for name in embedded)
+                or len(set(embedded)) != len(embedded)):
+            raise SystemExit(f"Invalid {module}.components.{component}.bundle_files in {manifest}")
     for field in ("runtime_configs", "schedules"):
         scoped = source.get(field, {})
         if not isinstance(scoped, dict) or any(key not in ("user", "system") for key in scoped):

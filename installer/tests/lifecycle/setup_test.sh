@@ -27,7 +27,8 @@ export PATH="$test_dir/bin:$PATH"
 "$project_root/scripts/setup.sh" --module backup --module privacy
 registry="$HOME/.local/state/shell-scripts/registry.json"
 [[ -x "$HOME/.local/bin/backup-home-cron" && -x "$HOME/.local/bin/privacy-cleanup" ]]
-[[ -f "$HOME/.local/bin/backup_home_common.sh" ]]
+[[ ! -e "$HOME/.local/bin/backup_home_common.sh" ]]
+[[ $(head -c 4 "$HOME/.local/bin/backup-home") == $'\177ELF' ]]
 rg -q 'shell-scripts setup' "$HOME/.profile"
 python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert set(d["modules"]) == {"backup","privacy"}; assert d["modules"]["backup"]["commands"]["backup-home"]["source"].endswith("src/data-privacy/backup/scripts/snapshot/backup_home.sh"); assert d["modules"]["privacy"]["setup_script"].endswith("src/data-privacy/privacy/setup.sh")' "$registry"
 

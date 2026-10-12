@@ -10,6 +10,7 @@
   "commands": {
     "loc-rank": "scripts/loc-rank"
   },
+  "bundle_commands": ["loc-rank"],
   "examples": [],
   "cron_templates": [],
   "scopes": ["user", "system"]

@@ -71,6 +71,11 @@ def write_module(module: str, previous_commands: dict, writing: set[str],
     definition = MODULES[module]
     commands = ({} if components is None or components.get(module) is None
                 else copy.deepcopy(previous_commands))
+    if components is not None and components.get(module) is not None:
+        obsolete = {name for component in components[module]
+                    for name in definition["components"][component].get("bundle_files", [])}
+        for name in obsolete:
+            commands.pop(name, None)
     for name, source_relative in definition["commands"].items():
         if name not in writing:
             continue

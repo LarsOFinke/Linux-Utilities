@@ -1,5 +1,7 @@
 # Home backup and remote copy
 
+Setup and update need `cc` and install one ELF executable per command. The shared Bash helper is embedded, and an update removes older registry-owned copies from the command directory. Python 3.9+ is needed to launch the installed commands. Snapshot archives and the optional cron template remain separate files.
+
 From the repository root, install with `src/data-privacy/backup/setup.sh` or `./main.sh setup --module backup`. Add `--system` and use sudo when root cron jobs need the commands. These entry points require the repository installer; use `./main.sh setup --ssh TARGET --module backup` for remote deployment. The target needs Python 3.9 or newer.
 
 ## Home snapshots

@@ -16,18 +16,15 @@
     "vps-gateway-add": "scripts/vps_site_workflow.sh",
     "vps-gateway-site-list": "scripts/vps_site_workflow.sh",
     "vps-gateway-site-render": "scripts/vps_site_workflow.sh",
-    "vps-gateway-site-import": "scripts/vps_site_workflow.sh",
+    "vps-gateway-site-import": "scripts/vps_site_workflow.sh"
+  },
+  "bundle_commands": ["vps-gateway", "vps-gateway-site", "vps-gateway-configure", "vps-gateway-status", "vps-gateway-init", "vps-gateway-add", "vps-gateway-site-list", "vps-gateway-site-render", "vps-gateway-site-import"],
+  "bundle_files": {
     "vps_site_model.py": "scripts/vps_site_model.py",
     "vps_site_init.py": "scripts/vps_site_init.py",
     "vps_site_add.py": "scripts/vps_site_add.py",
     "vps_site_ports.py": "scripts/vps_site_ports.py"
   },
-  "non_executable_commands": [
-    "vps_site_model.py",
-    "vps_site_init.py",
-    "vps_site_add.py",
-    "vps_site_ports.py"
-  ],
   "build_commands": {
     "vps-gateway-site": "scripts/build-site-command.py"
   },

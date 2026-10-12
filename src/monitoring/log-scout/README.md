@@ -1,5 +1,7 @@
 # Linux log triage (`log-scout`) — prototype
 
+Setup and update need `cc` and install one ELF executable with the Python helpers embedded. An update removes older registry-owned helper files from the command directory. Python 3.9+ is required at runtime, and cached scans remain in the user's data directory.
+
 A read-only terminal utility for **scan → summary → category → repeated-message group → examples**.
 It reads the journal or explicitly selected plain text logs, counts warnings/errors, groups
 similar messages, and saves private snapshots for later inspection without rescanning.

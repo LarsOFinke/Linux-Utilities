@@ -53,7 +53,8 @@ def main() -> None:
         assert (remote_bin / "update-system").is_file()
         assert (remote_bin / "install-amd-gaming").is_file()
         assert (remote_bin / "capture-traffic").is_file()
-        assert (remote_bin / "capture_registry.py").is_file()
+        assert not (remote_bin / "capture_registry.py").exists()
+        assert (remote_bin / "capture-traffic").read_bytes().startswith(b"\x7fELF")
         record = json.loads(registry.read_text(encoding="utf-8"))
         assert not record["modules"]
         assert set(record["remote_deployments"]["demo"]["user"]) == {"system-update", "system", "network"}

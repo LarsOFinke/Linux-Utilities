@@ -7,11 +7,6 @@ from pathlib import Path
 
 from catalog.source import source_path
 
-LEGACY_MISSING_COMMANDS = {
-    "system": {"h848_wireplumber_05.conf", "h848_wireplumber_04.lua", "h848_audio_guard.service"},
-}
-
-
 def command_definitions(module: str, manifest: Path, source: dict) -> dict:
     commands = source.get("commands")
     if not isinstance(commands, dict) or not commands:
@@ -69,12 +64,16 @@ def installed_components(module: str, entry: dict, modules: dict) -> set[str]:
         component_commands(module, names, modules)
         expected = component_commands(module, names, modules)
         owned = set(entry["commands"])
-        if not owned <= expected or not expected - owned <= LEGACY_MISSING_COMMANDS.get(module, set()):
+        obsolete = (set(definitions["h848-audio"].get("bundle_files", []))
+                    if module == "system" and "h848-audio" in names else set())
+        if not owned - expected <= obsolete or not expected <= owned:
             raise RuntimeError(f"Inconsistent component registry for {module}")
         return names
     owned = set(entry["commands"])
     names = {name for name, item in definitions.items() if owned.intersection(item["commands"])}
     expected = component_commands(module, names, modules)
-    if not owned <= expected or not expected - owned <= LEGACY_MISSING_COMMANDS.get(module, set()):
+    obsolete = (set(definitions["h848-audio"].get("bundle_files", []))
+                if module == "system" and "h848-audio" in names else set())
+    if not owned - expected <= obsolete or not expected <= owned:
         raise RuntimeError(f"Cannot infer components from legacy registry for {module}")
     return names

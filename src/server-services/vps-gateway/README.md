@@ -1,5 +1,7 @@
 # NGINX and Certbot setup
 
+Setup and update need `cc` and install one ELF executable per command with the site helpers and blueprint data embedded. An update removes older registry-owned Python helpers from the command directory. Python 3.9+ is needed to launch the commands. NGINX configuration and certificates remain separate files.
+
 This system-only module installs distribution NGINX and Certbot packages on Debian/Ubuntu VPS hosts and provides a gateway core plus application site blueprints. Initialization can install the core and catch-all without an application site, so project deployers can register their own routes later.
 
 ```bash

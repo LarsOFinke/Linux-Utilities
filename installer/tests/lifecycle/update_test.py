@@ -32,19 +32,24 @@ def main() -> None:
             return result.stdout + result.stderr
 
         run('main.sh', 'setup', '--component', 'system:amd-gaming', '--module', 'termlay',
-            '--module', 'connect-vps', '--no-configure')
+            '--module', 'connect-vps', '--module', 'backup', '--module', 'log-scout',
+            '--no-configure')
         registry = home / '.local/state/shell-scripts/registry.json'
         installed = home / '.local/bin'
         state = json.loads(registry.read_text())
         old_helpers = {
+            'backup': {'backup_home_common.sh': 'scripts/snapshot/backup_home_common.sh'},
+            'log-scout': {'log_scout_rules.py': 'scripts/log_scout_rules.py'},
             'termlay': {'Layout.py': 'scripts/layout/Layout.py',
                         'TermlayError.py': 'scripts/TermlayError.py'},
             'connect-vps': {'Connection.py': 'scripts/Connection.py',
                             'ConnectVpsError.py': 'scripts/ConnectVpsError.py'},
         }
         for module, helpers in old_helpers.items():
+            category = 'data-privacy' if module == 'backup' else (
+                'monitoring' if module == 'log-scout' else 'system-utilities')
             for name, relative in helpers.items():
-                source = REPOSITORY / 'src/system-utilities' / module / relative
+                source = REPOSITORY / 'src' / category / module / relative
                 target = installed / name
                 target.write_bytes(source.read_bytes())
                 target.chmod(0o644)
@@ -53,17 +58,26 @@ def main() -> None:
                     'sha256': hashlib.sha256(target.read_bytes()).hexdigest(),
                 }
         registry.write_text(json.dumps(state))
+        altered_helper = installed / 'backup_home_common.sh'
+        original_helper = altered_helper.read_bytes()
+        altered_helper.write_bytes(original_helper + b'\n# local edit\n')
+        assert 'changed locally' in run('main.sh', 'update', '--module', 'backup', success=False)
+        altered_helper.write_bytes(original_helper)
         # Explicit user selections must not request system-registry privileges.
         output = run('main.sh', 'update', '--module', 'system', '--module', 'termlay',
-                     '--module', 'connect-vps')
-        assert all(f'Updated {name}:' in output for name in ('system', 'termlay', 'connect-vps'))
+                     '--module', 'connect-vps', '--module', 'backup', '--module', 'log-scout')
+        assert all(f'Updated {name}:' in output for name in
+                   ('system', 'termlay', 'connect-vps', 'backup', 'log-scout'))
         state = json.loads(registry.read_text())
         assert state['modules']['system']['components'] == ['amd-gaming']
         assert not (installed / 'install-h848-audio-fix').exists()
         assert 'source_sha256' in state['modules']['termlay']['commands']['termlay']
         for module, helpers in old_helpers.items():
-            assert set(state['modules'][module]['commands']) == {module}
-            assert (installed / module).read_bytes().startswith(b'\x7fELF')
+            expected = ({'backup-home', 'backup-home-cron', 'backup-home-prune',
+                         'fetch-remote-backup'} if module == 'backup' else {module})
+            assert set(state['modules'][module]['commands']) == expected
+            main_command = 'backup-home' if module == 'backup' else module
+            assert (installed / main_command).read_bytes().startswith(b'\x7fELF')
             for name in helpers:
                 assert not (installed / name).exists()
         assert subprocess.run([str(installed / 'termlay'), '--version'], env=environment,
@@ -77,9 +91,9 @@ def main() -> None:
         assert registry.read_bytes() == previous
         # Missing selections must not silently become new installations.
         environment['SHELL_SCRIPTS_INSTALL_ROOT'] = str(home / 'system')
-        run('main.sh', 'update', '--module', 'backup', success=False)
+        run('main.sh', 'update', '--module', 'network', success=False)
         run('main.sh', 'update', '--component', 'system:h848-audio', success=False)
-        assert not (installed / 'backup-home').exists()
+        assert not (installed / 'capture-traffic').exists()
         assert registry.read_bytes() == previous
     print('Update lifecycle tests passed')
 

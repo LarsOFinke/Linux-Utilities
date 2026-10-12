@@ -8,7 +8,10 @@
   "setup": "setup.sh",
   "documentation": "README.md",
   "commands": {
-    "log-scout": "scripts/log-scout",
+    "log-scout": "scripts/log-scout"
+  },
+  "bundle_commands": ["log-scout"],
+  "bundle_files": {
     "LogScoutCache.py": "scripts/LogScoutCache.py",
     "log_scout_cli.py": "scripts/log_scout_cli.py",
     "log_scout_rules.py": "scripts/log_scout_rules.py",
@@ -16,14 +19,6 @@
     "log_scout_sources.py": "scripts/log_scout_sources.py",
     "log_scout_view.py": "scripts/log_scout_view.py"
   },
-  "non_executable_commands": [
-    "LogScoutCache.py",
-    "log_scout_cli.py",
-    "log_scout_rules.py",
-    "log_scout_scan.py",
-    "log_scout_sources.py",
-    "log_scout_view.py"
-  ],
   "examples": [
     "configuration/cache.env.example"
   ],
