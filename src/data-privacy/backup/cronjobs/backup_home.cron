@@ -4,4 +4,4 @@
 #
 # SHELL=/bin/bash
 # PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-# 01 03 * * * root /usr/local/bin/backup-home-cron sampleuser
+# 01 03 * * * root /usr/local/bin/backup cron sampleuser

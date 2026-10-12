@@ -26,23 +26,23 @@ export PATH="$test_dir/bin:$PATH"
 
 "$project_root/scripts/setup.sh" --module backup --module privacy
 registry="$HOME/.local/state/shell-scripts/registry.json"
-[[ -x "$HOME/.local/bin/backup-home-cron" && -x "$HOME/.local/bin/privacy-cleanup" ]]
+[[ -x "$HOME/.local/bin/backup" && -x "$HOME/.local/bin/privacy" ]]
 [[ ! -e "$HOME/.local/bin/backup_home_common.sh" ]]
-[[ $(head -c 4 "$HOME/.local/bin/backup-home") == $'\177ELF' ]]
+[[ $(head -c 4 "$HOME/.local/bin/backup") == $'\177ELF' ]]
 rg -q 'shell-scripts setup' "$HOME/.profile"
-python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert set(d["modules"]) == {"backup","privacy"}; assert d["modules"]["backup"]["commands"]["backup-home"]["source"].endswith("src/data-privacy/backup/scripts/snapshot/backup_home.sh"); assert d["modules"]["privacy"]["setup_script"].endswith("src/data-privacy/privacy/setup.sh")' "$registry"
+python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert set(d["modules"]) == {"backup","privacy"}; assert d["modules"]["backup"]["commands"]["backup"]["source"].endswith("src/data-privacy/backup/scripts/backup"); assert d["modules"]["privacy"]["setup_script"].endswith("src/data-privacy/privacy/setup.sh")' "$registry"
 
 printf 'content\n' >"$test_dir/homes/sampleuser/data.txt"
 BACKUP_SOURCE_ROOT="$test_dir/homes" BACKUP_ROOT="$test_dir/archives" \
-    PATH="$HOME/.local/bin:$PATH" bash -c 'cd /tmp && backup-home-cron sampleuser'
+    PATH="$HOME/.local/bin:$PATH" bash -c 'cd /tmp && backup cron sampleuser'
 [[ -L "$test_dir/archives/sampleuser/latest.tar.bz2" ]]
 
 printf '0 1 * * * echo existing\n' >"$MOCK_CRONTAB"
-printf '\n\n\n\n\n' | "$HOME/.local/bin/privacy-cleanup" configure
-PATH="$HOME/.local/bin:$PATH" bash -c 'cd /tmp && privacy-cleanup status' >/dev/null
+printf '\n\n\n\n\n' | "$HOME/.local/bin/privacy" configure
+PATH="$HOME/.local/bin:$PATH" bash -c 'cd /tmp && privacy status' >/dev/null
 rg -q 'privacy-cleanup user' "$MOCK_CRONTAB"
 "$project_root/src/data-privacy/privacy/uninstall.sh"
-[[ ! -e "$HOME/.local/bin/privacy-cleanup" && -x "$HOME/.local/bin/backup-home" ]]
+[[ ! -e "$HOME/.local/bin/privacy" && -x "$HOME/.local/bin/backup" ]]
 [[ -f "$HOME/.config/privacy-cleanup/user.cfg" ]]
 rg -q 'echo existing' "$MOCK_CRONTAB"
 if rg -q 'privacy-cleanup user' "$MOCK_CRONTAB"; then
@@ -50,7 +50,7 @@ if rg -q 'privacy-cleanup user' "$MOCK_CRONTAB"; then
     exit 1
 fi
 "$project_root/scripts/uninstall.sh" --module backup
-[[ ! -e "$HOME/.local/bin/backup-home" ]]
+[[ ! -e "$HOME/.local/bin/backup" ]]
 if rg -q 'shell-scripts setup' "$HOME/.profile"; then
     echo 'Expected setup PATH entry to be removed' >&2
     exit 1
@@ -72,22 +72,22 @@ fi
 [[ ! -e "$SHELL_SCRIPTS_INSTALL_ROOT/etc/cron.d/capture-traffic" ]]
 
 "$project_root/scripts/setup.sh" --system --module privacy
-printf '\n\n\n\n\n\n' | "$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/privacy-cleanup" --system configure
+printf '\n\n\n\n\n\n' | "$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/privacy" --system configure
 PATH="$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin:$PATH" \
-    bash -c 'cd /tmp && privacy-cleanup --system status' >/dev/null
+    bash -c 'cd /tmp && privacy --system status' >/dev/null
 [[ -f "$SHELL_SCRIPTS_INSTALL_ROOT/etc/cron.d/privacy-cleanup" ]]
 "$project_root/scripts/uninstall.sh" --system --module privacy --purge-config
-[[ ! -e "$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/privacy-cleanup" ]]
+[[ ! -e "$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/privacy" ]]
 [[ ! -e "$SHELL_SCRIPTS_INSTALL_ROOT/etc/cron.d/privacy-cleanup" ]]
 [[ ! -e "$SHELL_SCRIPTS_INSTALL_ROOT/etc/privacy-cleanup/system.cfg" ]]
 
 "$project_root/scripts/setup.sh" --module backup >/dev/null
-printf '# local edit\n' >>"$HOME/.local/bin/backup-home"
+printf '# local edit\n' >>"$HOME/.local/bin/backup"
 if "$project_root/scripts/uninstall.sh" --module backup >/dev/null 2>&1; then
     echo 'Expected changed installed command to be preserved' >&2
     exit 1
 fi
-[[ -f "$HOME/.local/bin/backup-home" ]]
+[[ -f "$HOME/.local/bin/backup" ]]
 "$project_root/scripts/uninstall.sh" --module backup --force >/dev/null
-[[ ! -e "$HOME/.local/bin/backup-home" ]]
+[[ ! -e "$HOME/.local/bin/backup" ]]
 printf 'Installation tests passed\n'

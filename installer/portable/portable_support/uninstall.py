@@ -17,8 +17,12 @@ def uninstall(state_path: Path, state: dict, system: bool, force: bool, purge_co
     owned = installed_components(state, manifest) if selected is not None else set()
     if selected is not None and not selected <= owned:
         fail(f"Component is not installed: {', '.join(sorted(selected - owned))}")
-    removing = set(state["commands"]) if selected is None else component_commands(selected, manifest)
-    records = [state["commands"][name] for name in removing]
+    removing = (set(state["commands"]) if selected is None or
+                (manifest.get("shared_component_commands") and selected == owned) else
+                set() if manifest.get("shared_component_commands") else component_commands(selected, manifest))
+    verifying = (set(state["commands"]) if selected is not None and
+                 manifest.get("shared_component_commands") else removing)
+    records = [state["commands"][name] for name in verifying]
     if selected is None:
         records.extend(state.get("cron", {}).values())
     for record in records:
@@ -26,12 +30,17 @@ def uninstall(state_path: Path, state: dict, system: bool, force: bool, purge_co
     hook = hook_command(state, system, purge_config, root, manifest) if selected is None else None
     if hook:
         subprocess.run(hook[0], env=hook[1], check=True)
-    files = [Path(record["path"]) for record in records] + [state_path]
+    files = ([Path(state["commands"][name]["path"]) for name in removing]
+             + ([Path(record["path"]) for record in state.get("cron", {}).values()]
+                if selected is None else []) + [state_path])
     snapshots = {path: (path.read_bytes(), path.stat().st_mode & 0o777)
                  if path.exists() else None for path in files}
     try:
-        for record in records:
-            Path(record["path"]).unlink(missing_ok=True)
+        for name in removing:
+            Path(state["commands"][name]["path"]).unlink(missing_ok=True)
+        if selected is None:
+            for record in state.get("cron", {}).values():
+                Path(record["path"]).unlink(missing_ok=True)
         if selected is None or selected == owned:
             state_path.unlink()
         else:

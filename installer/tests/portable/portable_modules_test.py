@@ -72,6 +72,7 @@ def main() -> None:
             assert "module/portable_module.py" in packaged
             assert all(f"module/portable_support/{source.name}" in packaged for source in support.glob("*.py"))
             manifest = json.loads((bundle / "module.json").read_text(encoding="utf-8"))
+            assert len(manifest["commands"]) == 1, name
             system = "user" not in manifest["scopes"]
             args = ["--system"] if system else []
             run(["python3", bundle / "portable_module.py", "install", *args], environment, cwd=root)
@@ -89,9 +90,9 @@ def main() -> None:
                 source.mkdir(parents=True)
                 (source / "data.txt").write_text("portable\n", encoding="utf-8")
                 backup_env = dict(environment, BACKUP_SOURCE_ROOT=str(source.parent), BACKUP_ROOT=str(root / "archives"))
-                run([bin_dir / "backup-home-cron", "sampleuser"], backup_env, cwd=root)
+                run([bin_dir / "backup", "cron", "sampleuser"], backup_env, cwd=root)
                 assert (root / "archives/sampleuser/latest.tar.bz2").is_symlink()
-                installed = bin_dir / "backup-home"
+                installed = bin_dir / "backup"
                 original = installed.read_bytes()
                 installed.write_bytes(original + b"# local edit\n")
                 failed = subprocess.run(["python3", str(bundle / "portable_module.py"), "uninstall"], env=environment, cwd=root,
@@ -100,13 +101,13 @@ def main() -> None:
                 assert installed.exists()
                 installed.write_bytes(original)
             if name == "privacy":
-                run([bin_dir / "privacy-cleanup", "configure"], environment, input="\n\n\n\n\n", cwd=root)
+                run([bin_dir / "privacy", "configure"], environment, input="\n\n\n\n\n", cwd=root)
                 assert "privacy-cleanup user" in crontab_state.read_text(encoding="utf-8")
             if name == "canary":
-                run([bin_dir / "fs-tracker", "--help"], environment, cwd=root)
+                run([bin_dir / "canary", "tracker", "--help"], environment, cwd=root)
                 target = root / "decoy.txt"
                 target.write_text("decoy\n", encoding="utf-8")
-                run([bin_dir / "canary-control", "configure", "demo", "--path", str(target),
+                run([bin_dir / "canary", "configure", "demo", "--path", str(target),
                      "--log", str(root / "events.jsonl")], environment, cwd=root)
             if name == "system":
                 # An older install recorded H848 templates beside its commands.

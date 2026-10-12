@@ -12,7 +12,7 @@ from canary_state import ROOT, UNITS, atomic_write, digest, fail, runtime_path, 
 STATE = ROOT / "var/lib/shell-scripts/canary/ssh/record.json"
 CONFIG = ROOT / "etc/fs-tracker/ssh-watch.json"
 UNIT = UNITS / "fs-ssh-watch.service"
-BIN = ROOT / "usr/local/bin/canary-ssh-watcher"
+BIN = ROOT / "usr/local/bin/canary"
 
 
 def record():
@@ -51,7 +51,7 @@ def validate(events, scope, user, log, action):
 def _unit_text():
     return ("[Unit]\nDescription=Canary SSH journal watcher\nAfter=systemd-journald.service\n\n"
             "[Service]\nType=simple\nUMask=0077\n"
-            f"ExecStart={BIN} --config {CONFIG}\nRestart=on-failure\n"
+            f"ExecStart={BIN} ssh-watch --config {CONFIG}\nRestart=on-failure\n"
             "NoNewPrivileges=yes\nProtectHome=yes\n\n"
             "[Install]\nWantedBy=multi-user.target\n")
 

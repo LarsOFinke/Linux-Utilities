@@ -22,6 +22,9 @@ def command_definitions(module: str, manifest: Path, source: dict) -> dict:
     components = source.get("components", {})
     if not isinstance(components, dict):
         raise SystemExit(f"Invalid {module}.components in {manifest}")
+    shared = source.get("shared_component_commands", False)
+    if not isinstance(shared, bool) or (shared and not components):
+        raise SystemExit(f"Invalid {module}.shared_component_commands in {manifest}")
     claimed: set[str] = set()
     for name, component in components.items():
         if (not isinstance(name, str) or not re.fullmatch(r"[a-z][a-z0-9-]*", name)
@@ -35,14 +38,15 @@ def command_definitions(module: str, manifest: Path, source: dict) -> dict:
                 or len(set(component["commands"])) != len(component["commands"])):
             raise SystemExit(f"Invalid {module}.components.{name} in {manifest}")
         overlap = claimed.intersection(component["commands"])
-        if overlap:
+        if overlap and not shared:
             raise SystemExit(f"Commands shared by {module} components: {', '.join(sorted(overlap))}")
         claimed.update(component["commands"])
     if components and (claimed != set(commands) or source.get("pre_remove") or source.get("post_install")
                        or source.get("post_update")
                        or source.get("system_cron")):
         raise SystemExit(f"{module} components must partition commands and have no module lifecycle hooks or cron")
-    return {"commands": paths, "non_executable_commands": helpers, "components": components}
+    return {"commands": paths, "non_executable_commands": helpers, "components": components,
+            "shared_component_commands": shared}
 
 
 def component_commands(module: str, names: set[str], modules: dict) -> set[str]:
@@ -66,14 +70,23 @@ def installed_components(module: str, entry: dict, modules: dict) -> set[str]:
         owned = set(entry["commands"])
         obsolete = (set(definitions["h848-audio"].get("bundle_files", []))
                     if module == "system" and "h848-audio" in names else set())
-        if not owned - expected <= obsolete or not expected <= owned:
+        legacy = ({"install-amd-gaming"} if "amd-gaming" in names else set()) | (
+            {"install-h848-audio-fix", "uninstall-h848-audio-fix"} if "h848-audio" in names else set())
+        compatible_legacy = module == "system" and owned <= legacy | obsolete and legacy <= owned
+        if not compatible_legacy and (not owned - expected <= obsolete or not expected <= owned):
             raise RuntimeError(f"Inconsistent component registry for {module}")
         return names
     owned = set(entry["commands"])
-    names = {name for name, item in definitions.items() if owned.intersection(item["commands"])}
+    names = ({name for name, item in definitions.items() if owned.intersection(item["commands"])}
+             if module != "system" else
+             ({"amd-gaming"} if "install-amd-gaming" in owned else set()) |
+             ({"h848-audio"} if "install-h848-audio-fix" in owned else set()))
     expected = component_commands(module, names, modules)
     obsolete = (set(definitions["h848-audio"].get("bundle_files", []))
                 if module == "system" and "h848-audio" in names else set())
-    if not owned - expected <= obsolete or not expected <= owned:
+    legacy = ({"install-amd-gaming"} if "amd-gaming" in names else set()) | (
+        {"install-h848-audio-fix", "uninstall-h848-audio-fix"} if "h848-audio" in names else set())
+    compatible_legacy = module == "system" and owned <= legacy | obsolete and legacy <= owned
+    if not compatible_legacy and (not owned - expected <= obsolete or not expected <= owned):
         raise RuntimeError(f"Cannot infer components from legacy registry for {module}")
     return names

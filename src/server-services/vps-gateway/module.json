@@ -8,29 +8,22 @@
   "setup": "setup.sh",
   "documentation": "README.md",
   "commands": {
-    "vps-gateway": "scripts/vps-gateway",
-    "vps-gateway-site": "scripts/vps-gateway-site.py",
-    "vps-gateway-configure": "scripts/vps_gateway_workflow.sh",
-    "vps-gateway-status": "scripts/vps_gateway_workflow.sh",
-    "vps-gateway-init": "scripts/vps_site_workflow.sh",
-    "vps-gateway-add": "scripts/vps_site_workflow.sh",
-    "vps-gateway-site-list": "scripts/vps_site_workflow.sh",
-    "vps-gateway-site-render": "scripts/vps_site_workflow.sh",
-    "vps-gateway-site-import": "scripts/vps_site_workflow.sh"
+    "vps-gateway": "scripts/vps-gateway"
   },
-  "bundle_commands": ["vps-gateway", "vps-gateway-site", "vps-gateway-configure", "vps-gateway-status", "vps-gateway-init", "vps-gateway-add", "vps-gateway-site-list", "vps-gateway-site-render", "vps-gateway-site-import"],
+  "bundle_commands": ["vps-gateway"],
   "bundle_files": {
+    "vps-gateway-site": "scripts/vps-gateway-site.py",
     "vps_site_model.py": "scripts/vps_site_model.py",
     "vps_site_init.py": "scripts/vps_site_init.py",
     "vps_site_add.py": "scripts/vps_site_add.py",
     "vps_site_ports.py": "scripts/vps_site_ports.py"
   },
-  "build_commands": {
+  "build_files": {
     "vps-gateway-site": "scripts/build-site-command.py"
   },
   "post_install": {
-    "command": "vps-gateway-init",
-    "args": [],
+    "command": "vps-gateway",
+    "args": ["site", "init"],
     "prompt": "Initialize the VPS gateway now? (A first site is optional.)"
   },
   "examples": [

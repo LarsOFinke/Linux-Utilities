@@ -11,7 +11,7 @@ ROOT = Path(os.environ.get("SHELL_SCRIPTS_INSTALL_ROOT", "/")).resolve()
 STATE = ROOT / "var/lib/shell-scripts/canary"
 CONFIG = ROOT / "etc/fs-tracker"
 UNITS = ROOT / "etc/systemd/system"
-BIN = ROOT / "usr/local/bin/fs-tracker"
+BIN = ROOT / "usr/local/bin/canary"
 
 
 def fail(message):

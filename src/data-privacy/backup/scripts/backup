@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+case "${1:-}" in
+    home|cron)
+        shift
+        exec "$script_dir/backup-home" "$@" ;;
+    prune)
+        shift
+        exec "$script_dir/backup-home-prune" "$@" ;;
+    fetch)
+        shift
+        exec "$script_dir/fetch-remote-backup" "$@" ;;
+    *)
+        printf 'Usage: backup home NAME | cron NAME | prune NAME [--yes] | fetch ARGS...\n' >&2
+        exit 2 ;;
+esac

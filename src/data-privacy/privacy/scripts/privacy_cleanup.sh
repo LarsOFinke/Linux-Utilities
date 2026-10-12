@@ -19,14 +19,14 @@ if [[ "$scope" == user ]]; then
     config_dir="$HOME/.config/privacy-cleanup"
     config_file="$config_dir/user.cfg"
     state_dir="$HOME/.local/state/privacy-cleanup"
-    installed_script="$HOME/.local/bin/privacy-cleanup"
-    scheduled_script="$HOME/.local/bin/privacy-scheduled"
+    installed_script="$HOME/.local/bin/privacy"
+    scheduled_script="$HOME/.local/bin/privacy"
 else
     config_dir="$prefix/etc/privacy-cleanup"
     config_file="$config_dir/system.cfg"
     state_dir="$prefix/var/lib/privacy-cleanup"
-    installed_script="$prefix/usr/local/bin/privacy-cleanup"
-    scheduled_script="$prefix/usr/local/bin/privacy-scheduled"
+    installed_script="$prefix/usr/local/bin/privacy"
+    scheduled_script="$prefix/usr/local/bin/privacy"
     cron_file="$prefix/etc/cron.d/privacy-cleanup"
     log_dir="$prefix/var/log"
 fi

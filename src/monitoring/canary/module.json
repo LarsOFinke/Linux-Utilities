@@ -8,19 +8,14 @@
   "setup": "setup.sh",
   "documentation": "README.md",
   "commands": {
+    "canary": "scripts/canary"
+  },
+  "bundle_commands": ["canary"],
+  "bundle_files": {
     "fs-tracker": "tracker/app/main.c",
     "canary-control": "scripts/canary-control",
-    "canary-configure": "scripts/canary_workflow.sh",
-    "canary-status": "scripts/canary_workflow.sh",
-    "canary-start": "scripts/canary_workflow.sh",
-    "canary-stop": "scripts/canary_workflow.sh",
-    "canary-remove": "scripts/canary_workflow.sh",
-    "canary-remove-all": "scripts/canary_workflow.sh",
     "canary-ssh": "scripts/ssh/canary-ssh",
-    "canary-ssh-watcher": "scripts/ssh/canary_ssh_watcher.py"
-  },
-  "bundle_commands": ["canary-control", "canary-configure", "canary-status", "canary-start", "canary-stop", "canary-remove", "canary-remove-all", "canary-ssh", "canary-ssh-watcher"],
-  "bundle_files": {
+    "canary-ssh-watcher": "scripts/ssh/canary_ssh_watcher.py",
     "canary_ssh_events.py": "scripts/ssh/canary_ssh_events.py",
     "canary_ssh_lifecycle.py": "scripts/ssh/canary_ssh_lifecycle.py",
     "canary_state.py": "scripts/canary_state.py",
@@ -36,21 +31,21 @@
       "var/lib/shell-scripts/canary"
     ]
   },
-  "build_commands": {
+  "build_files": {
     "fs-tracker": "scripts/build-tracker.sh"
   },
   "pre_remove": {
-    "command": "canary-remove-all",
-    "args": ["--yes"]
+    "command": "canary",
+    "args": ["remove-all", "--yes"]
   },
   "post_install": {
-    "command": "canary-ssh",
-    "args": ["setup"],
+    "command": "canary",
+    "args": ["ssh", "setup"],
     "prompt": "Configure SSH event watching now?"
   },
   "post_update": {
-    "command": "canary-ssh",
-    "args": ["update"],
+    "command": "canary",
+    "args": ["ssh", "update"],
     "prompt": "Review Canary SSH watch choices now?"
   },
   "scopes": [

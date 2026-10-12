@@ -8,12 +8,15 @@
   "setup": "setup.sh",
   "documentation": "README.md",
   "commands": {
+    "system-utils": "scripts/system-utils"
+  },
+  "bundle_commands": ["system-utils"],
+  "shared_component_commands": true,
+  "bundle_files": {
+    "system_utils_guard.py": "scripts/system_utils_guard.py",
     "install-amd-gaming": "components/amd-gaming/install_amd_gaming.sh",
     "install-h848-audio-fix": "components/h848-audio/install_h848_audio_fix.sh",
-    "uninstall-h848-audio-fix": "components/h848-audio/uninstall_h848_audio_fix.sh"
-  },
-  "bundle_commands": ["install-amd-gaming", "install-h848-audio-fix", "uninstall-h848-audio-fix"],
-  "bundle_files": {
+    "uninstall-h848-audio-fix": "components/h848-audio/uninstall_h848_audio_fix.sh",
     "h848_audio_lifecycle.sh": "components/h848-audio/h848_audio_lifecycle.sh",
     "h848_audio_guard.sh": "components/h848-audio/h848_audio_guard.sh",
     "h848_wireplumber_05.conf": "components/h848-audio/h848_wireplumber_05.conf",
@@ -23,11 +26,11 @@
   "components": {
     "amd-gaming": {
       "description": "AMD gaming package setup",
-      "commands": ["install-amd-gaming"]
+      "commands": ["system-utils"]
     },
     "h848-audio": {
       "description": "H848 audio fix and removal",
-      "commands": ["install-h848-audio-fix", "uninstall-h848-audio-fix"],
+      "commands": ["system-utils"],
       "bundle_files": ["h848_audio_lifecycle.sh", "h848_audio_guard.sh", "h848_wireplumber_05.conf", "h848_wireplumber_04.lua", "h848_audio_guard.service"]
     }
   },

@@ -89,7 +89,7 @@ def uninstall_recovery(portable: bool, publication: bool, failure: BaseException
             helper.install(["privacy"], {}, bin_dir, state, False)
             uninstall = lambda: helper.uninstall(["privacy"], {}, state, False, root, False, False)
         # Preserve local file modes as well as bytes during recovery.
-        (bin_dir / "privacy-status").chmod(0o700)
+        (bin_dir / "privacy").chmod(0o700)
         before = snapshot(home)
         real_unlink = Path.unlink
         deleted = 0
@@ -99,7 +99,7 @@ def uninstall_recovery(portable: bool, publication: bool, failure: BaseException
             result = real_unlink(path, *args, **kwargs)
             if path.parent == bin_dir:
                 deleted += 1
-            if (publication and portable and path == state) or (not publication and deleted == 2):
+            if (publication and portable and path == state) or (not publication and deleted == 1):
                 deleted = -100  # One-shot failure; rollback must be allowed to run.
                 raise failure
             return result

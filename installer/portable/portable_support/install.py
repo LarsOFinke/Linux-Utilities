@@ -9,12 +9,17 @@ from pathlib import Path
 from .bundle import build as build_bundle
 from .files import atomic_copy, atomic_json, digest, local_path, restore_snapshot
 from .install_plan import prepare
+from . import migration
 from .state import fail
 
 
 def install(bin_dir: Path, state_path: Path, root: Path, system: bool,
             selected: set[str] | None = None, *, module: Path, manifest: dict, module_id: str) -> None:
     plan = prepare(module, manifest, bin_dir, state_path, root, system, selected, module_id)
+    migration_files = migration.files(module_id, plan.previous, root, system)
+    plan.snapshots.update({path: (path.read_bytes(), path.stat().st_mode & 0o777)
+                           for path in migration_files})
+    crontab = migration.user_crontab(module_id, plan.previous, system)
     with tempfile.TemporaryDirectory(prefix=f"{module_id}-build-") as directory:
         built = {}
         for name, script in manifest.get("build_commands", {}).items():
@@ -29,6 +34,12 @@ def install(bin_dir: Path, state_path: Path, root: Path, system: bool,
             files = {name: local_path(source, module) for name, source in manifest["commands"].items()}
             files.update({name: local_path(source, module)
                           for name, source in manifest.get("bundle_files", {}).items()})
+            for name, script in manifest.get("build_files", {}).items():
+                output = Path(directory) / f"file-{name}"
+                subprocess.run([str(local_path(script, module)), str(output)], check=True)
+                if not output.is_file():
+                    fail(f"Build script produced no output: {script}")
+                files[name] = output
             executable = set(manifest["commands"]) - set(manifest.get("non_executable_commands", []))
             prebuilt = dict(built)
             for name in manifest["bundle_commands"]:
@@ -38,6 +49,7 @@ def install(bin_dir: Path, state_path: Path, root: Path, system: bool,
                 output = Path(directory) / name
                 build_bundle(name, sources, executable, output)
                 built[name] = output
+        migrated = False
         try:
             installed = {} if selected is None else dict(plan.previous)
             for path in plan.stale:
@@ -46,6 +58,7 @@ def install(bin_dir: Path, state_path: Path, root: Path, system: bool,
                 target = bin_dir / name
                 atomic_copy(built.get(name, local_path(source, module)), target, name not in manifest.get("non_executable_commands", []))
                 installed[name] = {"path": str(target), "sha256": digest(target)}
+            migrated = migration.apply(module_id, plan.previous, root, system, crontab)
             installed_cron = {}
             if plan.cron and plan.cron_target is not None:
                 atomic_copy(local_path(plan.cron["source"], module), plan.cron_target, False)
@@ -55,8 +68,12 @@ def install(bin_dir: Path, state_path: Path, root: Path, system: bool,
             atomic_json(state_path, {"id": module_id, "system": system, "commands": installed,
                                      "cron": installed_cron, "pre_remove": manifest.get("pre_remove"),
                                      **({"components": sorted(plan.names)} if manifest.get("components") else {})})
+            migration.reload_canary(module_id, migrated, root)
         except BaseException:
             for path, original in reversed(list(plan.snapshots.items())):
                 restore_snapshot(path, original)
+            if migrated:
+                migration.restore_crontab(crontab)
+            migration.reload_canary(module_id, migrated, root)
             raise
     print(f"Installed {manifest['display_name']} to {bin_dir}")

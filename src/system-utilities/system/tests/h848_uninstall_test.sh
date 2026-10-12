@@ -42,6 +42,6 @@ printf 'installed\n' >"$lua_config"
 for template in h848_wireplumber_05.conf h848_wireplumber_04.lua h848_audio_guard.service; do
     [[ ! -e "$HOME/.local/bin/$template" ]]
 done
-"$HOME/.local/bin/uninstall-h848-audio-fix" >/dev/null
+"$HOME/.local/bin/system-utils" h848-audio uninstall >/dev/null
 [[ ! -e "$lua_config" ]]
 printf 'H848 uninstall test passed\n'

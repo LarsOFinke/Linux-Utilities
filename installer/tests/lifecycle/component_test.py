@@ -71,13 +71,18 @@ def main() -> None:
         output = interactive(REPOSITORY / "scripts/setup.sh", f"4\n{system_choice}\n1\n".encode(), environment)
         assert "Categories:" in output and "System utilities modules:" in output
         assert f"{system_choice}. system" in output and "1. amd-gaming" in output
-        assert set(records(registry)["system"]["commands"]) == {"install-amd-gaming"}
+        assert set(records(registry)["system"]["commands"]) == {"system-utils"}
+        guard = SYSTEM / "scripts/system_utils_guard.py"
+        guard_env = dict(environment, LINUX_UTILITIES_BUNDLE_PATH=str(binary / "system-utils"))
+        assert subprocess.run(["python3", str(guard), "amd-gaming"], env=guard_env).returncode == 0
+        assert subprocess.run(["python3", str(guard), "h848-audio"], env=guard_env).returncode == 1
         output = interactive(REPOSITORY / "scripts/setup.sh", f"4\n{system_choice}\n1\n".encode(), environment)
         assert "1. h848-audio" in output and "amd-gaming —" not in output
-        assert "install-h848-audio-fix" in records(registry)["system"]["commands"]
+        assert records(registry)["system"]["components"] == ["amd-gaming", "h848-audio"]
         output = interactive(REPOSITORY / "scripts/uninstall.sh", b"1\n1\n1\n", environment)
         assert "1. amd-gaming" in output and "2. h848-audio" in output
-        assert "install-amd-gaming" not in records(registry)["system"]["commands"]
+        assert records(registry)["system"]["components"] == ["h848-audio"]
+        assert subprocess.run(["python3", str(guard), "amd-gaming"], env=guard_env).returncode == 1
         run(REPOSITORY / "scripts/uninstall.sh", "--module", "system", environment=environment)
         assert "system" not in records(registry)
 
@@ -103,14 +108,29 @@ def main() -> None:
         run(REPOSITORY / "scripts/uninstall.sh", "--module", "system-update", environment=environment)
         assert not update.exists()
         assert "system-update" not in records(registry)
-        assert "install-h848-audio-fix" in records(registry)["system"]["commands"]
+        assert "system-utils" in records(registry)["system"]["commands"]
         run(SYSTEM / "uninstall.sh", "--component", "h848-audio", environment=environment)
         run(REPOSITORY / "scripts/uninstall.sh", "--module", "system", environment=environment)
 
         run(SYSTEM / "setup.sh", "--component", "amd-gaming", environment=environment)
-        assert set(records(registry)["system"]["commands"]) == {"install-amd-gaming"}
+        assert set(records(registry)["system"]["commands"]) == {"system-utils"}
         run(SYSTEM / "setup.sh", "--component", "h848-audio", environment=environment)
         state = json.loads(registry.read_text(encoding="utf-8"))
+        # A previous release installed one command per workflow.
+        state["modules"]["system"]["commands"].pop("system-utils")
+        (binary / "system-utils").unlink()
+        legacy = {
+            "install-amd-gaming": SYSTEM / "components/amd-gaming/install_amd_gaming.sh",
+            "install-h848-audio-fix": SYSTEM / "components/h848-audio/install_h848_audio_fix.sh",
+            "uninstall-h848-audio-fix": SYSTEM / "components/h848-audio/uninstall_h848_audio_fix.sh",
+        }
+        for name, source in legacy.items():
+            target = binary / name
+            target.write_bytes(source.read_bytes())
+            state["modules"]["system"]["commands"][name] = {
+                "path": str(target), "source": str(source),
+                "sha256": hashlib.sha256(target.read_bytes()).hexdigest(),
+            }
         for name in ("h848_wireplumber_05.conf", "h848_audio_guard.service"):
             source = SYSTEM / "components/h848-audio" / name
             target = binary / name
@@ -124,10 +144,10 @@ def main() -> None:
             environment=environment)
         assert not (binary / "h848_wireplumber_05.conf").exists()
         assert not (binary / "h848_audio_guard.service").exists()
-        assert set(records(registry)["system"]["commands"]) == {
-            "install-amd-gaming", "install-h848-audio-fix", "uninstall-h848-audio-fix"}
+        assert set(records(registry)["system"]["commands"]) == {"system-utils"}
+        assert all(not (binary / name).exists() for name in legacy)
         run(SYSTEM / "uninstall.sh", "--component", "amd-gaming", environment=environment)
-        assert (binary / "install-h848-audio-fix").exists()
+        assert (binary / "system-utils").exists()
         run(SYSTEM / "uninstall.sh", "--component", "h848-audio", environment=environment)
         assert "system" not in records(registry)
     print("Component lifecycle tests passed")

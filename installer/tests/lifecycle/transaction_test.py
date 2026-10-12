@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import copy
 import os
 import tempfile
@@ -12,7 +14,7 @@ from unittest.mock import patch
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from catalog import CATALOG, MODULES
+from catalog import MODULES, REPOSITORY
 from core.files import copy_command
 from core.registry import paths, read_registry
 from setup import install as install_logic
@@ -31,7 +33,7 @@ def main() -> None:
         with patch.dict(os.environ, HOME=str(home)):
             bin_dir, registry_path = current_install("backup")
             original_registry = registry_path.read_bytes()
-            original_command = (bin_dir / "backup-home").read_bytes()
+            original_command = (bin_dir / "backup").read_bytes()
             original_profile = (home / ".profile").read_bytes()
             real_copy = copy_command
             copies = 0
@@ -51,9 +53,9 @@ def main() -> None:
                 else:
                     raise AssertionError("Expected the batch install to fail")
             assert registry_path.read_bytes() == original_registry
-            assert (bin_dir / "backup-home").read_bytes() == original_command
+            assert (bin_dir / "backup").read_bytes() == original_command
             assert (home / ".profile").read_bytes() == original_profile
-            assert not (bin_dir / "privacy-cleanup").exists()
+            assert not (bin_dir / "privacy").exists()
 
             with patch.object(install_logic, "atomic_json", side_effect=OSError("registry failure")):
                 try:
@@ -63,28 +65,35 @@ def main() -> None:
                 else:
                     raise AssertionError("Expected registry write to fail")
             assert registry_path.read_bytes() == original_registry
-            assert not (bin_dir / "privacy-cleanup").exists()
+            assert not (bin_dir / "privacy").exists()
 
             obsolete = bin_dir / "backup-home-cron"
-            catalog = copy.deepcopy(MODULES)
-            del catalog["backup"]["commands"]["backup-home-cron"]
-            with patch.object(install_logic, "MODULES", catalog):
-                current_install("backup")
+            old_source = MODULES["backup"]["bundle_files"]["backup-home"]
+            obsolete.write_bytes((REPOSITORY / old_source).read_bytes())
+            registry = json.loads(registry_path.read_text(encoding="utf-8"))
+            registry["modules"]["backup"]["commands"]["backup-home-cron"] = {
+                "path": str(obsolete), "source": str(REPOSITORY / old_source),
+                "sha256": hashlib.sha256(obsolete.read_bytes()).hexdigest()}
+            registry_path.write_text(json.dumps(registry), encoding="utf-8")
+            current_install("backup")
             assert not obsolete.exists()
             registry = read_registry(registry_path, "user", bin_dir)
             assert "backup-home-cron" not in registry["modules"]["backup"]["commands"]
 
-            with patch.object(install_logic, "MODULES", CATALOG["modules"]):
-                current_install("backup")
+            obsolete.write_bytes((REPOSITORY / old_source).read_bytes())
+            registry = json.loads(registry_path.read_text(encoding="utf-8"))
+            registry["modules"]["backup"]["commands"]["backup-home-cron"] = {
+                "path": str(obsolete), "source": str(REPOSITORY / old_source),
+                "sha256": hashlib.sha256(obsolete.read_bytes()).hexdigest()}
+            registry_path.write_text(json.dumps(registry), encoding="utf-8")
             obsolete.write_text("locally edited\n", encoding="utf-8")
             before = registry_path.read_bytes()
-            with patch.object(install_logic, "MODULES", catalog):
-                try:
-                    current_install("backup")
-                except RuntimeError as error:
-                    assert "changed locally" in str(error)
-                else:
-                    raise AssertionError("Expected locally edited obsolete command to be preserved")
+            try:
+                current_install("backup")
+            except RuntimeError as error:
+                assert "changed locally" in str(error)
+            else:
+                raise AssertionError("Expected locally edited obsolete command to be preserved")
             assert obsolete.read_text(encoding="utf-8") == "locally edited\n"
             assert registry_path.read_bytes() == before
 
@@ -106,7 +115,7 @@ def main() -> None:
                     raise AssertionError("Expected system registry write to fail")
             assert cron.read_bytes() == original_cron
             assert registry_path.read_bytes() == original_registry
-            assert not (bin_dir / "privacy-cleanup").exists()
+            assert not (bin_dir / "privacy").exists()
 
             catalog = copy.deepcopy(MODULES)
             del catalog["network"]["system_cron"]

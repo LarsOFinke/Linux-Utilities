@@ -36,7 +36,7 @@ def prepare(module: Path, manifest: dict, bin_dir: Path, state_path: Path,
     cron_target = root / "etc/cron.d" / cron["name"] if cron else None
     if cron_target is not None:
         targets[cron_target] = old_cron.get(str(cron_target))
-    stale_names = (set(previous) - allowed if selected is None else
+    stale_names = (set(previous) - allowed if selected is None or manifest.get("shared_component_commands") else
                    {name for name in previous if name not in allowed and any(
                        name in manifest["components"][component].get("bundle_files", [])
                        for component in selected)})
@@ -45,6 +45,7 @@ def prepare(module: Path, manifest: dict, bin_dir: Path, state_path: Path,
     for path, record in {**targets, **stale}.items():
         check_target(path, record)
     for source in [*commands.values(), *manifest.get("bundle_files", {}).values(),
+                   *manifest.get("build_files", {}).values(),
                    *manifest.get("examples", []), *manifest.get("cron_templates", [])]:
         if not local_path(source, module).is_file():
             fail(f"Missing module file: {source}")

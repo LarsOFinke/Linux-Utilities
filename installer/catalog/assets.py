@@ -48,6 +48,13 @@ def asset_definitions(module: str, manifest: Path, source: dict, commands: dict)
         name: source_path(manifest, script, f"{module}.bundle_files.{name}")
         for name, script in files.items()
     }
+    generated_files = source.get("build_files", {})
+    if not isinstance(generated_files, dict) or any(name not in files for name in generated_files):
+        raise SystemExit(f"Invalid {module}.build_files in {manifest}")
+    result["build_files"] = {
+        name: source_path(manifest, script, f"{module}.build_files.{name}")
+        for name, script in generated_files.items()
+    }
     for component, item in source.get("components", {}).items():
         embedded = item.get("bundle_files", [])
         if (not isinstance(embedded, list)

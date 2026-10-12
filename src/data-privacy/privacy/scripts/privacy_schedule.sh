@@ -33,7 +33,7 @@ install_user_schedule() {
     cp -- "$old_crontab" "$state_dir/crontab.backup.$(date +%Y%m%d-%H%M%S)"
     sed '/# privacy-cleanup user$/d' "$old_crontab" >"$temporary"
     printf -v quoted_script '%q' "$scheduled_script"
-    printf '%s %s * * * %s # privacy-cleanup user\n' \
+    printf '%s %s * * * %s scheduled # privacy-cleanup user\n' \
         "$((10#$RUN_MINUTE))" "$((10#$RUN_HOUR))" "$quoted_script" >>"$temporary"
     crontab "$temporary"
     rm -f -- "$old_crontab" "$temporary"
@@ -44,7 +44,7 @@ install_system_schedule() {
     [[ ! -L "$cron_file" ]] || die "Refusing symbolic link: $cron_file"
     temporary=$(mktemp "$(dirname "$cron_file")/.privacy-cron.XXXXXX")
     printf -v quoted_script '%q' "$scheduled_script"
-    printf '# managed by shell-scripts privacy\nSHELL=/bin/bash\nPATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\n%s %s * * * root %s --system\n' \
+    printf '# managed by shell-scripts privacy\nSHELL=/bin/bash\nPATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\n%s %s * * * root %s --system scheduled\n' \
         "$((10#$RUN_MINUTE))" "$((10#$RUN_HOUR))" "$quoted_script" >"$temporary"
     chmod 0644 -- "$temporary"
     mv -f -- "$temporary" "$cron_file"

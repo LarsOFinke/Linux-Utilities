@@ -1,15 +1,15 @@
 # Connect a project
 
-For automated project registration on a fresh VPS, install the module and run `sudo vps-gateway-init --empty` first. This prepares the shared NGINX core and catch-all without requiring a project route. Portfolio and WoSB deployment then import their own rendered site configs through `vps-gateway-site-import`.
+For automated project registration on a fresh VPS, install the module and run `sudo vps-gateway site init --empty` first. This prepares the shared NGINX core and catch-all without requiring a project route. Portfolio and WoSB deployment then import their own rendered site configs through `vps-gateway site import`.
 
-The [HTTP core](../configuration/core/http.conf.example) and [proxy header snippet](../configuration/core/proxy-headers.conf.example) are prerequisites for these blueprints. The first-run wizard installs them; [operations](OPERATIONS.md) covers manual setup. Each project keeps its edited site file in its own repository. The installed `vps-gateway-site` command renders any blueprint without needing the source checkout.
+The [HTTP core](../configuration/core/http.conf.example) and [proxy header snippet](../configuration/core/proxy-headers.conf.example) are prerequisites for these blueprints. The first-run wizard installs them; [operations](OPERATIONS.md) covers manual setup. Each project keeps its edited site file in its own repository. The installed `vps-gateway site` command renders any blueprint without needing the source checkout.
 
-If a project already has a complete NGINX site config, select `import-existing` in `sudo vps-gateway-init` or `sudo vps-gateway-add`. Enter its public hostname and absolute file path. The wizard copies the file unchanged to `sites-available`, creates the enabling symlink, tests NGINX, and reloads it. It refuses to overwrite a site and removes the new copy and symlink if validation or reload fails. The file must declare the selected hostname as an exact `server_name`; review referenced snippets, certificates, upstreams, listeners, and `access_log` policy before importing it.
+If a project already has a complete NGINX site config, select `import-existing` in `sudo vps-gateway site init` or `sudo vps-gateway site add`. Enter its public hostname and absolute file path. The wizard copies the file unchanged to `sites-available`, creates the enabling symlink, tests NGINX, and reloads it. It refuses to overwrite a site and removes the new copy and symlink if validation or reload fails. The file must declare the selected hostname as an exact `server_name`; review referenced snippets, certificates, upstreams, listeners, and `access_log` policy before importing it.
 
 To automate that step from a project checkout after the gateway is initialized, stream the file over SSH:
 
 ```bash
-ssh vps 'sudo -n vps-gateway-site-import --host app.example.org --file -' < deploy/nginx/site.conf
+ssh vps 'sudo -n vps-gateway site import --host app.example.org --file -' < deploy/nginx/site.conf
 ```
 
 Use `--replace` for a reviewed update. Unchanged content is accepted without a reload. See the [gateway README](../README.md) for the file-path form, backup location, and sudo requirements.
@@ -32,15 +32,15 @@ services:
       - "127.0.0.1:18083:8080"
 ```
 
-Choose an unused host port per project. `sudo vps-gateway-add` suggests the next available port, shows the endpoint to configure, and waits for you to acknowledge it before activating the site. Keep databases and administrative services on private networks. For a host process, bind it to `127.0.0.1` directly. A local `curl -I http://127.0.0.1:18083/` should reach the app before adding NGINX.
+Choose an unused host port per project. `sudo vps-gateway site add` suggests the next available port, shows the endpoint to configure, and waits for you to acknowledge it before activating the site. Keep databases and administrative services on private networks. For a host process, bind it to `127.0.0.1` directly. A local `curl -I http://127.0.0.1:18083/` should reach the app before adding NGINX.
 
 1. In the project repository, render a site. The command refuses to overwrite an existing file:
 
    ```bash
    mkdir -p deploy/nginx
-   vps-gateway-site list
-   vps-gateway-site render java-spring --host app.example.org --port 18083 --output deploy/nginx/site.conf
-   # For files on disk instead: vps-gateway-site render static-html --host static.example.org --root /srv/www/static.example.org --output deploy/nginx/site.conf
+   vps-gateway site list
+   vps-gateway site render java-spring --host app.example.org --port 18083 --output deploy/nginx/site.conf
+   # For files on disk instead: vps-gateway site render static-html --host static.example.org --root /srv/www/static.example.org --output deploy/nginx/site.conf
    ```
 
 2. Review the generated site, especially the WebSocket or event path. For static sites, the `--root` directory must be readable by `www-data`. Remove optional locations the app does not use. Without `--output`, the command prints the config to stdout.

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from catalog import component_commands, installed_components
+from catalog import MODULES, component_commands, installed_components
 from core.files import sha256
 
 
@@ -14,6 +14,8 @@ def selected_commands(module: str, entry: dict, requested: set[str] | None) -> t
     owned = installed_components(module, entry)
     if not requested <= owned:
         raise RuntimeError(f"Component is not installed for {module}: {', '.join(sorted(requested - owned))}")
+    if MODULES[module].get("shared_component_commands"):
+        return (set(entry["commands"]) if requested == owned else set()), owned
     return component_commands(module, requested), owned
 
 

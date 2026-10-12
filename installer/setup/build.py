@@ -28,6 +28,13 @@ def build_commands(selected: list[str], directory: Path,
         definition = MODULES[module]
         files = {name: REPOSITORY / source for name, source in definition["commands"].items()}
         files.update({name: REPOSITORY / source for name, source in definition["bundle_files"].items()})
+        for name, script in definition["build_files"].items():
+            path = REPOSITORY / script
+            output = directory / f"{module}-file-{name}"
+            subprocess.run([str(path), str(output)], check=True)
+            if not output.is_file():
+                raise RuntimeError(f"Build script did not produce {output}")
+            files[name] = output
         executable = set(definition["commands"]) - set(definition.get("non_executable_commands", []))
         prebuilt = dict(built)
         for name in definition["bundle_commands"]:

@@ -1,6 +1,6 @@
 # Ubuntu automatic updates
 
-Setup and update need `cc` and install one ELF executable per command. State, policy, and action helpers are embedded; an update removes older registry-owned helper scripts from the command directory. Python 3.9+ is needed to launch the commands. APT configuration and state files remain separate.
+Setup and update need `cc` and install one ELF executable for the module. State, policy, and action helpers are embedded; an update removes older registry-owned helper scripts from the command directory. Python 3.9+ is needed to launch the commands. APT configuration and state files remain separate.
 
 This module adapts the policy and workflows from the former separate `ubuntu-unattended-upgrades` project. It uses Ubuntu's native `unattended-upgrades` and APT timers. It supports Ubuntu hosts with systemd and requires `apt`, `systemctl`, `flock`, and `sudo` for host changes. It does not create another schedule.
 
@@ -8,18 +8,18 @@ Install the command system-wide from the repository root with `./main.sh setup -
 
 ```bash
 ubuntu-updates                             # interactive menu
-ubuntu-updates-status                       # no sudo needed
-ubuntu-updates-logs                         # readable logs only
-ubuntu-updates-configure                    # interactive policy choices
-ubuntu-updates-configure --updates security --reboot off --yes
-ubuntu-updates-configure --updates all --reboot 04:00 --yes
-ubuntu-updates-dry-run
-ubuntu-updates-run                           # asks before installing updates
-ubuntu-updates-run --yes                     # explicit noninteractive run
-ubuntu-updates-restore                       # asks before restoring policy
+ubuntu-updates status                       # no sudo needed
+ubuntu-updates logs                         # readable logs only
+ubuntu-updates configure                    # interactive policy choices
+ubuntu-updates configure --updates security --reboot off --yes
+ubuntu-updates configure --updates all --reboot 04:00 --yes
+ubuntu-updates dry-run
+ubuntu-updates run                           # asks before installing updates
+ubuntu-updates run --yes                     # explicit noninteractive run
+ubuntu-updates restore                       # asks before restoring policy
 ```
 
-`ubuntu-updates` keeps its original subcommands for existing scripts.
+`ubuntu-updates` is the only installed executable for this module.
 
 `configure` installs `unattended-upgrades` if absent, writes `/etc/apt/apt.conf.d/99-shell-scripts-unattended-upgrades`, and enables Ubuntu's existing `apt-daily.timer` and `apt-daily-upgrade.timer`. Security mode permits official Ubuntu and ESM security origins; `all` also permits official `-updates`. PPAs, proposed, and backports are excluded from unattended installation. Automatic reboot is off unless a time is explicitly supplied, and logged-in users block an automatic reboot. `dry-run` uses the current package lists; `run` refreshes them and installs allowed updates. Package changes made by `run` are not reversible by this module.
 

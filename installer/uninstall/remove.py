@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 
-from catalog import installed_components
+from catalog import MODULES, installed_components
 from core.files import restore_files, snapshot_files
 from core.profile import remove_profile_line
 from core.registry import atomic_json, paths, read_registry, registry_lock
@@ -39,7 +39,9 @@ def _uninstall(
         entry = registry["modules"][module]
         requested = (components or {}).get(module)
         removing, owned = selected_commands(module, entry, requested)
-        verify_files(entry, removing, requested is None, force)
+        verifying = (set(entry["commands"]) if requested is not None and
+                     MODULES[module].get("shared_component_commands") else removing)
+        verify_files(entry, verifying, requested is None, force)
         if requested is None:
             run_pre_remove_hook(module, entry, system, base, purge_config)
         # Hooks can change host services; only managed files and registry are restored.

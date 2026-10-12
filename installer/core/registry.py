@@ -108,7 +108,9 @@ def migrate_legacy_system_update(registry: dict) -> None:
     update.pop("components", None)
     modules["system-update"] = update
     if old["commands"]:
-        old["components"] = sorted(installed_components("system", {**old, "components": None}))
+        old["components"] = sorted(
+            set(old["components"]) - {"update"} if old.get("components") else
+            installed_components("system", {**old, "components": None}))
     else:
         del modules["system"]
 

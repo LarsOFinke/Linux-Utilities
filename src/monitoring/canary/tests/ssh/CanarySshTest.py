@@ -81,13 +81,13 @@ class CanarySshTest(unittest.TestCase):
                 return result
 
             run(str(MODULE.parents[2] / "main.sh"), "setup", "--system", "--module", "canary", "--no-configure")
-            command = root / "usr/local/bin/canary-ssh"
+            command = root / "usr/local/bin/canary"
             log = root / "var/log/fs-tracker/ssh.jsonl"
-            run(str(command), "setup", "--events", "attempt,success", "--user", "alice", "--log", str(log))
+            run(str(command), "ssh", "setup", "--events", "attempt,success", "--user", "alice", "--log", str(log))
             config = root / "etc/fs-tracker/ssh-watch.json"
             unit = root / "etc/systemd/system/fs-ssh-watch.service"
             self.assertEqual(json.loads(config.read_text())["user"], "alice")
-            run(str(command), "update", "--events", "failure,disconnect", "--system")
+            run(str(command), "ssh", "update", "--events", "failure,disconnect", "--system")
             self.assertEqual(json.loads(config.read_text())["events"], ["failure", "disconnect"])
             self.assertIsNone(json.loads(config.read_text())["user"])
             run(str(MODULE.parents[2] / "main.sh"), "update", "--system", "--module", "canary", "--no-configure")

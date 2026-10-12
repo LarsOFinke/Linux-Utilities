@@ -61,11 +61,11 @@ export PATH="$test_dir/bin:$PATH"
 
 "$repository/src/server-services/vps-gateway/setup.sh" --system
 command="$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/vps-gateway"
-site_command="$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/vps-gateway-site"
+site_command="$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/vps-gateway"
 bin_dir="$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin"
 [[ -x "$command" ]]
 [[ -x "$site_command" ]]
-[[ -x "$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/vps-gateway-site-import" ]]
+[[ ! -e "$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/vps-gateway-site-import" ]]
 [[ ! -e "$MOCK_CALLS" ]]
 
 PYTHONPATH="$repository/src/server-services/vps-gateway/scripts" python3 - <<'PY'
@@ -88,22 +88,22 @@ spa = (module / 'configuration/blueprints/spa.conf.example').read_text()
 assert spa.index('location ~ /\\.') < spa.index('location ~* \\.')
 PY
 
-"$bin_dir/vps-gateway-site-list" | rg -q '^java-spring$'
-"$bin_dir/vps-gateway-site-render" java-spring --host service.example.org --port 18443 --output "$test_dir/site.conf"
+"$bin_dir/vps-gateway" site list | rg -q '^java-spring$'
+"$bin_dir/vps-gateway" site render java-spring --host service.example.org --port 18443 --output "$test_dir/site.conf"
 rg -q 'server_name service.example.org;' "$test_dir/site.conf"
 rg -q 'proxy_pass http://127.0.0.1:18443;' "$test_dir/site.conf"
-"$site_command" render static-html --host files.example.org --root /srv/www/public-files --output "$test_dir/static.conf"
+"$site_command" site render static-html --host files.example.org --root /srv/www/public-files --output "$test_dir/static.conf"
 rg -q 'root /srv/www/public-files;' "$test_dir/static.conf"
-if "$site_command" render java-spring --host 'bad;host' --port 18443 >/dev/null 2>&1; then
+if "$site_command" site render java-spring --host 'bad;host' --port 18443 >/dev/null 2>&1; then
     echo 'Invalid host should be rejected' >&2
     exit 1
 fi
-if "$site_command" render java-spring --host service.example.org --port 18443 --output "$test_dir/site.conf" >/dev/null 2>&1; then
+if "$site_command" site render java-spring --host service.example.org --port 18443 --output "$test_dir/site.conf" >/dev/null 2>&1; then
     echo 'Existing site should not be overwritten' >&2
     exit 1
 fi
 
-"$bin_dir/vps-gateway-configure"
+"$bin_dir/vps-gateway" configure
 expected=$'apt-get update\napt-get install -y nginx certbot python3-certbot-nginx\nnginx -t\nsystemctl enable nginx\nsystemctl is-active --quiet nginx\nsystemctl start nginx'
 [[ $(cat "$MOCK_CALLS") == "$expected" ]]
 
@@ -132,7 +132,7 @@ http {
 NGINX
 touch "$gateway_root/sites-available/default"
 ln -s ../sites-available/default "$gateway_root/sites-enabled/default"
-printf '2\nservice.example.org\n18443\n18443\ny\ny\n' | "$bin_dir/vps-gateway-init"
+printf '2\nservice.example.org\n18443\n18443\ny\ny\n' | "$bin_dir/vps-gateway" site init
 [[ -f "$gateway_root/conf.d/vps-gateway.conf" ]]
 [[ -f "$gateway_root/snippets/vps-gateway-proxy-headers.conf" ]]
 [[ -L "$gateway_root/sites-enabled/vps-gateway-catch-all.conf" ]]
@@ -141,18 +141,18 @@ printf '2\nservice.example.org\n18443\n18443\ny\ny\n' | "$bin_dir/vps-gateway-in
 rg -q 'proxy_pass http://127.0.0.1:18443;' "$gateway_root/sites-available/service.example.org.conf"
 rg -q '^certbot --nginx -d service.example.org --redirect$' "$MOCK_CALLS"
 
-printf '5\nfiles.example.org\n/srv/www/files\nn\ny\n' | "$bin_dir/vps-gateway-add"
+printf '5\nfiles.example.org\n/srv/www/files\nn\ny\n' | "$bin_dir/vps-gateway" site add
 [[ -L "$gateway_root/sites-enabled/files.example.org.conf" ]]
 rg -q 'root /srv/www/files;' "$gateway_root/sites-available/files.example.org.conf"
-printf '1\nnext.example.org\n18443\n18444\n18444\nn\ny\n' | "$bin_dir/vps-gateway-add"
+printf '1\nnext.example.org\n18443\n18444\n18444\nn\ny\n' | "$bin_dir/vps-gateway" site add
 rg -q 'proxy_pass http://127.0.0.1:18444;' "$gateway_root/sites-available/next.example.org.conf"
-printf '1\ncancelled.example.org\n\ncancel\n' | "$bin_dir/vps-gateway-add"
+printf '1\ncancelled.example.org\n\ncancel\n' | "$bin_dir/vps-gateway" site add
 [[ ! -e "$gateway_root/sites-available/cancelled.example.org.conf" ]]
-if printf '5\nfiles.example.org\n/srv/www/files\n' | "$bin_dir/vps-gateway-add" >/dev/null 2>&1; then
+if printf '5\nfiles.example.org\n/srv/www/files\n' | "$bin_dir/vps-gateway" site add >/dev/null 2>&1; then
     echo 'Duplicate hostname should be rejected' >&2
     exit 1
 fi
-if printf '1\nbroken.example.org\n18081\n18081\nn\ny\n' | MOCK_FAIL_STAGED=1 "$bin_dir/vps-gateway-add" >/dev/null 2>&1; then
+if printf '1\nbroken.example.org\n18081\n18081\nn\ny\n' | MOCK_FAIL_STAGED=1 "$bin_dir/vps-gateway" site add >/dev/null 2>&1; then
     echo 'Invalid added site should fail' >&2
     exit 1
 fi
@@ -168,18 +168,18 @@ server {
     location / { return 204; }
 }
 NGINX
-printf '7\nimported.example.org\n%s\nn\ny\n' "$project_site" | "$bin_dir/vps-gateway-add"
+printf '7\nimported.example.org\n%s\nn\ny\n' "$project_site" | "$bin_dir/vps-gateway" site add
 cmp "$project_site" "$gateway_root/sites-available/imported.example.org.conf"
 [[ -L "$gateway_root/sites-enabled/imported.example.org.conf" ]]
 
-if printf '7\nwrong.example.org\n%s\n' "$project_site" | "$bin_dir/vps-gateway-add" >/dev/null 2>&1; then
+if printf '7\nwrong.example.org\n%s\n' "$project_site" | "$bin_dir/vps-gateway" site add >/dev/null 2>&1; then
     echo 'Imported config with a different hostname should be rejected' >&2
     exit 1
 fi
 [[ ! -e "$gateway_root/sites-available/wrong.example.org.conf" ]]
 
 sed 's/imported.example.org/failed.example.org/' "$project_site" > "$test_dir/failed-site.conf"
-if printf '7\nfailed.example.org\n%s\nn\ny\n' "$test_dir/failed-site.conf" | MOCK_FAIL_STAGED=1 "$bin_dir/vps-gateway-add" >/dev/null 2>&1; then
+if printf '7\nfailed.example.org\n%s\nn\ny\n' "$test_dir/failed-site.conf" | MOCK_FAIL_STAGED=1 "$bin_dir/vps-gateway" site add >/dev/null 2>&1; then
     echo 'Failed imported config validation should roll back' >&2
     exit 1
 fi
@@ -188,21 +188,21 @@ fi
 
 cli_source="$test_dir/cli-site.conf"
 printf 'server {\r\n    listen 80;\r\n    server_name cli.example.org;\r\n    location / { return 204; }\r\n}\r\n' > "$cli_source"
-"$bin_dir/vps-gateway-site-import" --host cli.example.org --file "$cli_source"
+"$bin_dir/vps-gateway" site import --host cli.example.org --file "$cli_source"
 cmp "$cli_source" "$gateway_root/sites-available/cli.example.org.conf"
 [[ -L "$gateway_root/sites-enabled/cli.example.org.conf" ]]
 : > "$MOCK_CALLS"
-"$site_command" import --host cli.example.org --file - < "$cli_source"
+"$site_command" site import --host cli.example.org --file - < "$cli_source"
 [[ ! -s "$MOCK_CALLS" ]]
 
 printf 'server {\n    listen 80;\n    server_name cli.example.org;\n    location / { return 205; }\n}\n' > "$test_dir/cli-update.conf"
-if "$bin_dir/vps-gateway-site-import" --host cli.example.org --file "$test_dir/cli-update.conf" >/dev/null 2>&1; then
+if "$bin_dir/vps-gateway" site import --host cli.example.org --file "$test_dir/cli-update.conf" >/dev/null 2>&1; then
     echo 'Changing an existing site requires --replace' >&2
     exit 1
 fi
 cmp "$cli_source" "$gateway_root/sites-available/cli.example.org.conf"
 
-"$bin_dir/vps-gateway-site-import" --host cli.example.org --file "$test_dir/cli-update.conf" --replace
+"$bin_dir/vps-gateway" site import --host cli.example.org --file "$test_dir/cli-update.conf" --replace
 cmp "$test_dir/cli-update.conf" "$gateway_root/sites-available/cli.example.org.conf"
 backup_dir="$SHELL_SCRIPTS_INSTALL_ROOT/var/lib/shell-scripts/vps-gateway/backups"
 backup_files=("$backup_dir"/cli.example.org.*.conf)
@@ -210,30 +210,30 @@ backup_files=("$backup_dir"/cli.example.org.*.conf)
 cmp "$cli_source" "${backup_files[0]}"
 [[ $(stat -c %a "$backup_dir") == 700 ]]
 [[ $(stat -c %a "${backup_files[0]}") == 600 ]]
-if MOCK_FAIL_RELOAD=1 "$bin_dir/vps-gateway-site-import" --host cli.example.org --file "$cli_source" --replace >/dev/null 2>&1; then
+if MOCK_FAIL_RELOAD=1 "$bin_dir/vps-gateway" site import --host cli.example.org --file "$cli_source" --replace >/dev/null 2>&1; then
     echo 'Failed NGINX reload should restore the previous site' >&2
     exit 1
 fi
 cmp "$test_dir/cli-update.conf" "$gateway_root/sites-available/cli.example.org.conf"
 
 sed 's/cli.example.org/newcli.example.org/' "$cli_source" > "$test_dir/new-cli.conf"
-if MOCK_FAIL_STAGED=1 "$bin_dir/vps-gateway-site-import" --host newcli.example.org --file "$test_dir/new-cli.conf" >/dev/null 2>&1; then
+if MOCK_FAIL_STAGED=1 "$bin_dir/vps-gateway" site import --host newcli.example.org --file "$test_dir/new-cli.conf" >/dev/null 2>&1; then
     echo 'Failed new CLI import should remove staged files' >&2
     exit 1
 fi
 [[ ! -e "$gateway_root/sites-available/newcli.example.org.conf" ]]
 [[ ! -e "$gateway_root/sites-enabled/newcli.example.org.conf" ]]
-if MOCK_FAIL_STAGED=1 "$bin_dir/vps-gateway-site-import" --host cli.example.org --file "$cli_source" --replace >/dev/null 2>&1; then
+if MOCK_FAIL_STAGED=1 "$bin_dir/vps-gateway" site import --host cli.example.org --file "$cli_source" --replace >/dev/null 2>&1; then
     echo 'Failed site replacement should roll back' >&2
     exit 1
 fi
 cmp "$test_dir/cli-update.conf" "$gateway_root/sites-available/cli.example.org.conf"
 
-if "$bin_dir/vps-gateway-site-import" --host wrong.example.org --file "$cli_source" >/dev/null 2>&1; then
+if "$bin_dir/vps-gateway" site import --host wrong.example.org --file "$cli_source" >/dev/null 2>&1; then
     echo 'CLI import should reject a mismatched hostname' >&2
     exit 1
 fi
-if "$bin_dir/vps-gateway-site-import" --host cli.example.org --file cli-site.conf >/dev/null 2>&1; then
+if "$bin_dir/vps-gateway" site import --host cli.example.org --file cli-site.conf >/dev/null 2>&1; then
     echo 'CLI import should require an absolute file path' >&2
     exit 1
 fi
@@ -244,7 +244,7 @@ mkdir -p "$rollback_nginx/sites-available" "$rollback_nginx/sites-enabled" "$rol
 cp "$gateway_root/nginx.conf" "$rollback_nginx/nginx.conf"
 touch "$rollback_nginx/sites-available/default"
 ln -s ../sites-available/default "$rollback_nginx/sites-enabled/default"
-if printf '1\nrollback.example.org\n18081\n18081\nn\ny\n' | SHELL_SCRIPTS_INSTALL_ROOT="$rollback_root" MOCK_FAIL_STAGED=1 "$site_command" init >/dev/null 2>&1; then
+if printf '1\nrollback.example.org\n18081\n18081\nn\ny\n' | SHELL_SCRIPTS_INSTALL_ROOT="$rollback_root" MOCK_FAIL_STAGED=1 "$site_command" site init >/dev/null 2>&1; then
     echo 'Invalid staged NGINX configuration should fail setup' >&2
     exit 1
 fi
@@ -259,7 +259,7 @@ cp "$gateway_root/nginx.conf" "$first_nginx/nginx.conf"
 touch "$first_nginx/sites-available/default"
 ln -s ../sites-available/default "$first_nginx/sites-enabled/default"
 sed 's/imported.example.org/first.example.org/' "$project_site" > "$test_dir/first-site.conf"
-printf '7\nfirst.example.org\n%s\nn\ny\n' "$test_dir/first-site.conf" | SHELL_SCRIPTS_INSTALL_ROOT="$first_root" "$bin_dir/vps-gateway-init"
+printf '7\nfirst.example.org\n%s\nn\ny\n' "$test_dir/first-site.conf" | SHELL_SCRIPTS_INSTALL_ROOT="$first_root" "$bin_dir/vps-gateway" site init
 cmp "$test_dir/first-site.conf" "$first_nginx/sites-available/first.example.org.conf"
 
 empty_root="$test_dir/empty-root"
@@ -268,7 +268,7 @@ mkdir -p "$empty_nginx/sites-available" "$empty_nginx/sites-enabled" "$empty_ngi
 cp "$gateway_root/nginx.conf" "$empty_nginx/nginx.conf"
 touch "$empty_nginx/sites-available/default"
 ln -s ../sites-available/default "$empty_nginx/sites-enabled/default"
-SHELL_SCRIPTS_INSTALL_ROOT="$empty_root" "$bin_dir/vps-gateway-init" --empty
+SHELL_SCRIPTS_INSTALL_ROOT="$empty_root" "$bin_dir/vps-gateway" site init --empty
 [[ -f "$empty_nginx/conf.d/vps-gateway.conf" ]]
 [[ -f "$empty_nginx/snippets/vps-gateway-proxy-headers.conf" ]]
 [[ -L "$empty_nginx/sites-enabled/vps-gateway-catch-all.conf" ]]
@@ -291,8 +291,8 @@ else
     printf 'server { listen 80; server_name portfolio.example.org; proxy_pass http://127.0.0.1:18081; }\n' > "$test_dir/portfolio-site.conf"
     printf 'server { listen 80; server_name wosb.example.org; proxy_pass http://127.0.0.1:18080; }\n' > "$test_dir/wosb-site.conf"
 fi
-SHELL_SCRIPTS_INSTALL_ROOT="$empty_root" "$bin_dir/vps-gateway-site-import" --host portfolio.example.org --file "$test_dir/portfolio-site.conf"
-SHELL_SCRIPTS_INSTALL_ROOT="$empty_root" "$bin_dir/vps-gateway-site-import" --host wosb.example.org --file "$test_dir/wosb-site.conf"
+SHELL_SCRIPTS_INSTALL_ROOT="$empty_root" "$bin_dir/vps-gateway" site import --host portfolio.example.org --file "$test_dir/portfolio-site.conf"
+SHELL_SCRIPTS_INSTALL_ROOT="$empty_root" "$bin_dir/vps-gateway" site import --host wosb.example.org --file "$test_dir/wosb-site.conf"
 cmp "$test_dir/portfolio-site.conf" "$empty_nginx/sites-available/portfolio.example.org.conf"
 cmp "$test_dir/wosb-site.conf" "$empty_nginx/sites-available/wosb.example.org.conf"
 
@@ -302,14 +302,14 @@ mkdir -p "$empty_failure_nginx/sites-available" "$empty_failure_nginx/sites-enab
 cp "$gateway_root/nginx.conf" "$empty_failure_nginx/nginx.conf"
 touch "$empty_failure_nginx/sites-available/default"
 ln -s ../sites-available/default "$empty_failure_nginx/sites-enabled/default"
-if SHELL_SCRIPTS_INSTALL_ROOT="$empty_failure_root" MOCK_FAIL_STAGED=1 "$bin_dir/vps-gateway-init" --empty >/dev/null 2>&1; then
+if SHELL_SCRIPTS_INSTALL_ROOT="$empty_failure_root" MOCK_FAIL_STAGED=1 "$bin_dir/vps-gateway" site init --empty >/dev/null 2>&1; then
     echo 'Failed empty initialization should stop' >&2
     exit 1
 fi
 [[ -L "$empty_failure_nginx/sites-enabled/default" ]]
 [[ ! -e "$empty_failure_nginx/conf.d/vps-gateway.conf" ]]
 [[ ! -e "$empty_failure_nginx/sites-enabled/vps-gateway-catch-all.conf" ]]
-printf '8\ny\n' | SHELL_SCRIPTS_INSTALL_ROOT="$empty_failure_root" "$bin_dir/vps-gateway-init"
+printf '8\ny\n' | SHELL_SCRIPTS_INSTALL_ROOT="$empty_failure_root" "$bin_dir/vps-gateway" site init
 [[ -L "$empty_failure_nginx/sites-enabled/vps-gateway-catch-all.conf" ]]
 [[ $(find "$empty_failure_nginx/sites-enabled" -mindepth 1 -maxdepth 1 | wc -l) -eq 1 ]]
 
@@ -318,7 +318,7 @@ missing_nginx="$missing_includes/etc/nginx"
 mkdir -p "$missing_nginx/sites-available" "$missing_nginx/sites-enabled" "$missing_nginx/conf.d" "$missing_nginx/snippets"
 touch "$missing_nginx/nginx.conf" "$missing_nginx/sites-available/default"
 ln -s ../sites-available/default "$missing_nginx/sites-enabled/default"
-if printf '5\nnoinclude.example.org\n/srv/www/noinclude\nn\ny\n' | SHELL_SCRIPTS_INSTALL_ROOT="$missing_includes" "$bin_dir/vps-gateway-init" >/dev/null 2>&1; then
+if printf '5\nnoinclude.example.org\n/srv/www/noinclude\nn\ny\n' | SHELL_SCRIPTS_INSTALL_ROOT="$missing_includes" "$bin_dir/vps-gateway" site init >/dev/null 2>&1; then
     echo 'Missing NGINX includes should stop first-run setup' >&2
     exit 1
 fi

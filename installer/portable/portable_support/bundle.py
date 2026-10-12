@@ -59,9 +59,11 @@ def build(command: str, files: dict[str, Path], executable: set[str], output: Pa
         bundle.writestr(runtime, Path(__file__).with_name("bundle_runtime.py").read_bytes(),
                         compress_type=zipfile.ZIP_DEFLATED)
         for name, source in sorted(files.items()):
+            contents = source.read_bytes()
             info = zipfile.ZipInfo(name)
-            info.external_attr = ((0o755 if name in executable else 0o644) << 16)
-            bundle.writestr(info, source.read_bytes(), compress_type=zipfile.ZIP_DEFLATED)
+            runnable = name in executable or contents.startswith((b"#!", b"\x7fELF"))
+            info.external_attr = ((0o755 if runnable else 0o644) << 16)
+            bundle.writestr(info, contents, compress_type=zipfile.ZIP_DEFLATED)
     subprocess.run(["cc", "-O2", "-std=c99", "-x", "c", "-", "-o", str(output)],
                    input=LAUNCHER.replace("__COMMAND__", json.dumps(command)).encode(), check=True)
     with output.open("ab") as stream:

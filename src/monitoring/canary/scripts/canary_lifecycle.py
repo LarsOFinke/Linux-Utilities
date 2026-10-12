@@ -31,7 +31,7 @@ def configure(args):
     if action:
         config_text += f"TRACK_ACTION={action}\n"
     unit_text = (f"[Unit]\nDescription=File activity monitor ({args.name})\nAfter=local-fs.target\n\n"
-                 f"[Service]\nType=simple\nUMask=0077\nExecStart={BIN} --config {config}\nRestart=on-failure\n\n"
+                 f"[Service]\nType=simple\nUMask=0077\nExecStart={BIN} tracker --config {config}\nRestart=on-failure\n\n"
                  "[Install]\nWantedBy=multi-user.target\n")
     try:
         log.parent.mkdir(parents=True, exist_ok=True, mode=0o700)

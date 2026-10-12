@@ -72,7 +72,7 @@ def main() -> None:
                 raise AssertionError("Symlinked profile was accepted")
             assert target.read_bytes() == original
             assert registry_path.read_bytes() == before
-            assert (bin_dir / "backup-home").is_file()
+            assert (bin_dir / "backup").is_file()
             profile.unlink()
             profile.write_bytes(original)
             profile.chmod(0o640)

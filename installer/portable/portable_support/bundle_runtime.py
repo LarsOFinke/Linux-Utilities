@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import signal
+import os
 import subprocess
 import sys
 import tempfile
@@ -19,7 +20,8 @@ def main() -> int:
             archive.extractall(root)
             for entry in archive.infolist():
                 (root / entry.filename).chmod((entry.external_attr >> 16) & 0o777)
-        child = subprocess.Popen([str(root / command), *sys.argv[2:]])
+        environment = dict(os.environ, LINUX_UTILITIES_BUNDLE_PATH=str(bundle))
+        child = subprocess.Popen([str(root / command), *sys.argv[2:]], env=environment)
         previous = {name: signal.signal(name, lambda signum, frame: child.send_signal(signum))
                     for name in (signal.SIGINT, signal.SIGTERM)}
         try:

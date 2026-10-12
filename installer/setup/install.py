@@ -10,6 +10,7 @@ from catalog import MODULES, REPOSITORY
 from core.files import copy_command, restore_files, sha256, snapshot_files
 from core.profile import ensure_user_path
 from core.registry import atomic_json, paths, read_registry, registry_lock
+from portable.portable_support import migration
 from setup.plan import plan_installation
 
 def install(selected: list[str], registry: dict, bin_dir: Path, registry_path: Path, system: bool,
@@ -29,11 +30,18 @@ def apply_installation(selected: list[str], registry: dict, bin_dir: Path, regis
     profile = Path.home() / ".profile"
     if not system and profile.is_symlink():
         raise RuntimeError(f"Refusing symbolic-link profile: {profile}")
-    files = list(plan.targets) + list(plan.stale) + [registry_path]
+    root = paths(system)[2]
+    migration_files = [path for module in selected for path in migration.files(
+        module, registry["modules"].get(module, {}).get("commands", {}), root, system)]
+    crontabs = {module: migration.user_crontab(
+        module, registry["modules"].get(module, {}).get("commands", {}), system)
+        for module in selected}
+    files = list(plan.targets) + list(plan.stale) + migration_files + [registry_path]
     if not system:
         files.append(profile)
     snapshots = snapshot_files(files)
     profile_notice = None
+    migrated = {}
     try:
         bin_dir.mkdir(parents=True, exist_ok=True)
         for module in selected:
@@ -42,6 +50,8 @@ def apply_installation(selected: list[str], registry: dict, bin_dir: Path, regis
                 module, previous, plan.writing[module], plan.desired[module],
                 built, bin_dir, system, components
             )
+            migrated[module] = migration.apply(module, registry["modules"].get(module, {}).get("commands", {}),
+                                               root, system, crontabs[module])
         for target in plan.stale:
             target.unlink(missing_ok=True)
         changes["repository"] = str(REPOSITORY)
@@ -49,10 +59,17 @@ def apply_installation(selected: list[str], registry: dict, bin_dir: Path, regis
         if not system and not updating:
             profile_notice = ensure_user_path(Path.home(), changes, bin_dir)
         atomic_json(registry_path, changes)
+        for module in selected:
+            migration.reload_canary(module, migrated[module], root)
     except BaseException as error:
         try:
             restore_files(snapshots)
-        except OSError as rollback_error:
+            for module, original in crontabs.items():
+                if migrated.get(module, False):
+                    migration.restore_crontab(original)
+            for module in selected:
+                migration.reload_canary(module, migrated.get(module, False), root)
+        except Exception as rollback_error:
             raise RuntimeError(f"Install failed: {error}; rollback failed: {rollback_error}") from error
         raise
     if profile_notice is not None:
@@ -71,6 +88,8 @@ def write_module(module: str, previous_commands: dict, writing: set[str],
     definition = MODULES[module]
     commands = ({} if components is None or components.get(module) is None
                 else copy.deepcopy(previous_commands))
+    if definition.get("shared_component_commands"):
+        commands = {name: record for name, record in commands.items() if name in definition["commands"]}
     if components is not None and components.get(module) is not None:
         obsolete = {name for component in components[module]
                     for name in definition["components"][component].get("bundle_files", [])}

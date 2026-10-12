@@ -51,7 +51,7 @@ def main() -> None:
         run([REPOSITORY / "scripts/setup.sh", "--ssh", "demo", "--component", "system:amd-gaming"], environment)
         run([REPOSITORY / "scripts/setup.sh", "--ssh", "demo", "--module", "network"], environment)
         assert (remote_bin / "update-system").is_file()
-        assert (remote_bin / "install-amd-gaming").is_file()
+        assert (remote_bin / "system-utils").is_file()
         assert (remote_bin / "capture-traffic").is_file()
         assert not (remote_bin / "capture_registry.py").exists()
         assert (remote_bin / "capture-traffic").read_bytes().startswith(b"\x7fELF")
@@ -90,7 +90,7 @@ def main() -> None:
         assert "system-update" in json.loads(registry.read_text(encoding="utf-8"))["remote_deployments"]["demo"]["user"]
         command.write_bytes(original)
         run([REPOSITORY / "scripts/uninstall.sh", "--ssh", "demo", "--component", "system:amd-gaming"], environment)
-        assert not (remote_bin / "install-amd-gaming").exists()
+        assert not (remote_bin / "system-utils").exists()
         assert command.exists()
         run([REPOSITORY / "scripts/uninstall.sh", "--ssh", "demo", "--module", "network"], environment)
         assert not (remote_bin / "capture-traffic").exists()

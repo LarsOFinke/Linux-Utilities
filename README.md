@@ -54,26 +54,28 @@ Installed commands:
 
 | Category / subcategory | Module (stable ID) | Commands |
 | --- | --- | --- |
-| Data and privacy / Backups | Home backup and remote copy (`backup`) | `backup-home`, `backup-home-cron`, `backup-home-prune`, `fetch-remote-backup` |
-| Data and privacy / Retention | History and log cleanup (`privacy`) | `privacy-configure`, `privacy-status`, `privacy-run`, `privacy-scheduled`, `privacy-uninstall-schedule` |
+| Data and privacy / Backups | Home backup and remote copy (`backup`) | `backup home`, `backup cron`, `backup prune`, `backup fetch` |
+| Data and privacy / Retention | History and log cleanup (`privacy`) | `privacy configure`, `privacy status`, `privacy run`, `privacy scheduled` |
 | Monitoring / Log analysis | Linux log triage prototype (`log-scout`) | `log-scout` |
 | Monitoring / Network capture | Packet capture (`network`) | `capture-traffic` |
-| Monitoring / File and SSH events | Canary file and SSH monitoring (`canary`) | `fs-tracker`, `canary-configure`, `canary-status`, `canary-start`, `canary-stop`, `canary-remove`, `canary-remove-all`, `canary-ssh` (system install) |
-| System utilities / Workstation setup | System utilities (`system`) | `install-amd-gaming`, `install-h848-audio-fix`, `uninstall-h848-audio-fix` |
+| Monitoring / File and SSH events | Canary file and SSH monitoring (`canary`) | `canary tracker`, `canary configure`, `canary status`, `canary start`, `canary stop`, `canary remove`, `canary ssh` (system install) |
+| System utilities / Workstation setup | System utilities (`system`) | `system-utils amd-gaming`, `system-utils h848-audio install`, `system-utils h848-audio uninstall` |
 | System utilities / Terminal workflow | Terminal layouts (`termlay`) | `termlay` |
 | System utilities / Remote access | Saved VPS connections (`connect-vps`) | `connect-vps` |
 | System utilities / Development | Source line ranking prototype (`loc-rank`) | `loc-rank` |
 | Server services / Package maintenance | Manual APT updates (`system-update`) | `update-system` |
-| Server services / Package maintenance | Ubuntu automatic updates (`ubuntu-updates`) | `ubuntu-updates-configure`, `ubuntu-updates-status`, `ubuntu-updates-logs`, `ubuntu-updates-dry-run`, `ubuntu-updates-run`, `ubuntu-updates-restore` (system install) |
-| Server services / Web gateway | NGINX and Certbot setup (`vps-gateway`) | `vps-gateway-configure`, `vps-gateway-status`, `vps-gateway-init`, `vps-gateway-add`, `vps-gateway-site-list`, `vps-gateway-site-render`, `vps-gateway-site-import` (system install) |
+| Server services / Package maintenance | Ubuntu automatic updates (`ubuntu-updates`) | `ubuntu-updates configure`, `ubuntu-updates status`, `ubuntu-updates logs`, `ubuntu-updates dry-run`, `ubuntu-updates run`, `ubuntu-updates restore` (system install) |
+| Server services / Web gateway | NGINX and Certbot setup (`vps-gateway`) | `vps-gateway configure`, `vps-gateway status`, `vps-gateway site init`, `vps-gateway site add`, `vps-gateway site list`, `vps-gateway site render`, `vps-gateway site import` (system install) |
 
-The previous multi-command entry points (`privacy-cleanup`, `ubuntu-updates`, `canary-control`, `vps-gateway`, and `vps-gateway-site`) remain installed for existing scripts. Each named workflow above can now be called directly. Some commands still require privileges for their own job. Privacy defaults to the current user's files without sudo; `--system` is optional and requires sudo. Read the module README before using a host-changing command.
+Each module installs one executable in the target bin directory. Updating a previously installed module removes its old registry-owned command files after checking their hashes. Configured Privacy schedules and Canary services are migrated to the new command names. Some commands still require privileges for their own job. Privacy defaults to the current user's files without sudo; `--system` is optional and requires sudo. Read the module README before using a host-changing command.
+
+Update any custom scripts or cron jobs that call retired command filenames to use the subcommands above. The installer changes only its registered command files and the managed Privacy and Canary schedules.
 
 `ubuntu-updates` is system-scope because its explicit `configure` command manages host APT policy and timers. Selecting it in the root setup UI installs the command system-wide but does not apply a policy. See the [module guide](src/server-services/ubuntu-updates/README.md) for commands, rollback, and the legacy-policy check.
 
 `canary` is system-scope because its services use systemd and host journal or fanotify privileges. Setup compiles and installs the sensor without automatically starting a service; interactive setup can offer an SSH watch wizard. Interactive update can revise the selected SSH events and monitored account. See the [canary guide](src/monitoring/canary/README.md) for configuration and safe removal.
 
-`vps-gateway` is system-scope. Run `sudo vps-gateway-init --empty` to install the core and catch-all without a first project site; the interactive initializer also offers this choice. Project installers can then import their own routes with `sudo vps-gateway-site-import --host NAME --file PATH` or stream them through standard input with `--file -`. Run `sudo vps-gateway-add` for interactive site creation. `sudo vps-gateway-configure` remains package-only. See the [VPS gateway guide](src/server-services/vps-gateway/README.md).
+`vps-gateway` is system-scope. Run `sudo vps-gateway site init --empty` to install the core and catch-all without a first project site; the interactive initializer also offers this choice. Project installers can then import their own routes with `sudo vps-gateway site import --host NAME --file PATH` or stream them through standard input with `--file -`. Run `sudo vps-gateway site add` for interactive site creation. `sudo vps-gateway configure` remains package-only. See the [VPS gateway guide](src/server-services/vps-gateway/README.md).
 
 `termlay save` selects tabs from the focused Ptyxis window and names a new layout. `termlay open` lets you choose a saved layout and whether to open it in the current or a new Ptyxis window; `termlay open NAME --new-window` selects a new window directly. `termlay update` selects a layout and replacement tabs, and `termlay delete` selects layouts for removal. `termlay list` (or `termlay ls`) prints saved names. Layouts store working directories under the XDG configuration directory. See the [terminal layouts guide](src/system-utilities/termlay/README.md) for storage and limitations.
 

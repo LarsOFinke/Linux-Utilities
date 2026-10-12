@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+component=${1:-}
+[[ $# -eq 0 ]] || shift
+if [[ -n ${LINUX_UTILITIES_BUNDLE_PATH:-} && "$component" != '' ]]; then
+    if ! python3 "$root/system_utils_guard.py" "$component"; then
+        printf 'system-utils: component is not installed: %s\n' "$component" >&2
+        exit 1
+    fi
+fi
+case "$component" in
+    amd-gaming)
+        exec "$root/install-amd-gaming" "$@" ;;
+    h848-audio)
+        action=${1:-install}
+        [[ $# -eq 0 ]] || shift
+        case "$action" in
+            install) exec "$root/install-h848-audio-fix" "$@" ;;
+            uninstall) exec "$root/uninstall-h848-audio-fix" "$@" ;;
+        esac ;;
+esac
+printf 'Usage: system-utils {amd-gaming|h848-audio [install|uninstall]} ...\n' >&2
+exit 2

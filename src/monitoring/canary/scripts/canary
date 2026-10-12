@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+action=${1:-}
+[[ $# -eq 0 ]] || shift
+case "$action" in
+    tracker) exec "$root/fs-tracker" "$@" ;;
+    configure|status|start|stop|remove|remove-all)
+        exec "$root/canary-control" "$action" "$@" ;;
+    ssh) exec "$root/canary-ssh" "$@" ;;
+    ssh-watch) exec "$root/canary-ssh-watcher" "$@" ;;
+    *) printf 'Usage: canary {tracker|configure|status|start|stop|remove|remove-all|ssh|ssh-watch} ...\n' >&2; exit 2 ;;
+esac

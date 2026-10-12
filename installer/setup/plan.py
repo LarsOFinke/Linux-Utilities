@@ -47,6 +47,7 @@ def verify_sources(selected: list[str], writing: dict[str, set[str]], system: bo
         if any(name in writing[module] for name in definition.get("bundle_commands", [])):
             sources.extend(definition.get("bundle_files", {}).values())
             sources.extend(definition["commands"].values())
+            sources.extend(definition.get("build_files", {}).values())
         sources.extend(definition["examples"])
         sources.extend(definition["cron_templates"])
         if system and "system_cron" in definition:
@@ -71,8 +72,9 @@ def owned_paths(selected: list[str], writing: dict[str, set[str]],
                 raise RuntimeError(f"Selected modules share a command path: {target}")
             targets[target] = (module, previous.get(name))
         for name, recorded in previous.items():
-            obsolete = ((components is None or components.get(module) is None)
-                        and name not in desired[module][0])
+            obsolete = (name not in desired[module][0] and
+                        (definition.get("shared_component_commands") or
+                         components is None or components.get(module) is None))
             if not obsolete and name not in desired[module][0] and components is not None:
                 selected_components = components.get(module) or set()
                 obsolete = any(name in definition["components"][component].get("bundle_files", [])

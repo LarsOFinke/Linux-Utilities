@@ -37,9 +37,7 @@ def main() -> None:
         assert result["components"].keys() == original["components"].keys()
         assert result["commands"].keys() == original["commands"].keys()
 
-        old_commands = set(result["commands"]) - {
-            "h848_wireplumber_05.conf", "h848_wireplumber_04.lua", "h848_audio_guard.service"
-        }
+        old_commands = {"install-amd-gaming", "install-h848-audio-fix", "uninstall-h848-audio-fix"}
         old_entry = {"components": ["amd-gaming", "h848-audio"],
                      "commands": {name: {} for name in old_commands}}
         assert installed_components("system", old_entry) == {"amd-gaming", "h848-audio"}
@@ -56,7 +54,7 @@ def main() -> None:
         expect_invalid("system", invalid, "Invalid command name", root)
 
         invalid = copy.deepcopy(original)
-        invalid["components"]["amd-gaming"]["commands"].append("install-h848-audio-fix")
+        invalid["shared_component_commands"] = False
         expect_invalid("system", invalid, "Commands shared by system components", root)
 
         invalid = copy.deepcopy(original)

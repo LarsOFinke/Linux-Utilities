@@ -12,11 +12,11 @@ printf 'decoy\n' > "$target"
 printf '{"old":true}\n' > "$log"
 
 "$repository/scripts/setup.sh" --system --module canary
-"$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/fs-tracker" --help >/dev/null
-"$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/canary-configure" demo --path "$target" --log "$log"
-"$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/canary-status" demo >/dev/null
-"$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/canary-stop" demo
-"$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/canary-start" demo
+"$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/canary" tracker --help >/dev/null
+"$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/canary" configure demo --path "$target" --log "$log"
+"$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/canary" status demo >/dev/null
+"$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/canary" stop demo
+"$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/canary" start demo
 config="$SHELL_SCRIPTS_INSTALL_ROOT/etc/fs-tracker/demo.conf"
 unit="$SHELL_SCRIPTS_INSTALL_ROOT/etc/systemd/system/fs-file-monitor-demo.service"
 [[ -f "$config" && -f "$unit" ]]
@@ -28,6 +28,6 @@ fi
 sed -i '$d' "$config"
 "$repository/scripts/uninstall.sh" --system --module canary
 [[ ! -e "$config" && ! -e "$unit" ]]
-[[ ! -e "$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/fs-tracker" ]]
+[[ ! -e "$SHELL_SCRIPTS_INSTALL_ROOT/usr/local/bin/canary" ]]
 [[ -f "$target" && -f "$log" ]]
 printf 'Canary integration test passed\n'

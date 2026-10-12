@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 usage() {
     cat <<'EOF'
-Usage: vps-gateway configure|status
+Usage: vps-gateway configure|status|site <init|add|list|render|import> ...
 
 configure  Install distribution NGINX, Certbot, and the Certbot NGINX plugin;
            validate the current NGINX configuration and enable the service.
@@ -11,6 +11,11 @@ status     Show the NGINX service state and validate its configuration.
 EOF
 }
 
+if [[ "${1:-}" == site ]]; then
+    shift
+    script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+    exec "$script_dir/vps-gateway-site" "$@"
+fi
 [[ $# -eq 1 ]] || { usage >&2; exit 2; }
 case "$1" in
     configure)

@@ -73,10 +73,9 @@ def main() -> None:
         assert not (installed / 'install-h848-audio-fix').exists()
         assert 'source_sha256' in state['modules']['termlay']['commands']['termlay']
         for module, helpers in old_helpers.items():
-            expected = ({'backup-home', 'backup-home-cron', 'backup-home-prune',
-                         'fetch-remote-backup'} if module == 'backup' else {module})
+            expected = {module}
             assert set(state['modules'][module]['commands']) == expected
-            main_command = 'backup-home' if module == 'backup' else module
+            main_command = module
             assert (installed / main_command).read_bytes().startswith(b'\x7fELF')
             for name in helpers:
                 assert not (installed / name).exists()
