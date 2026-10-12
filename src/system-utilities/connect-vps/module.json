@@ -8,20 +8,11 @@
   "setup": "setup.sh",
   "documentation": "README.md",
   "commands": {
-    "connect-vps": "scripts/connect-vps",
-    "Connection.py": "scripts/Connection.py",
-    "ConnectionStore.py": "scripts/ConnectionStore.py",
-    "ConnectVpsError.py": "scripts/ConnectVpsError.py",
-    "connection_prompts.py": "scripts/connection_prompts.py",
-    "ssh_connection.py": "scripts/ssh_connection.py"
+    "connect-vps": "scripts/connect-vps"
   },
-  "non_executable_commands": [
-    "Connection.py",
-    "ConnectionStore.py",
-    "ConnectVpsError.py",
-    "connection_prompts.py",
-    "ssh_connection.py"
-  ],
+  "build_commands": {
+    "connect-vps": "scripts/build-executable.py"
+  },
   "examples": [],
   "cron_templates": [],
   "scopes": ["user", "system"]

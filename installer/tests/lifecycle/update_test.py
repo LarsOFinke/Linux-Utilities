@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -30,16 +31,45 @@ def main() -> None:
             assert (result.returncode == 0) == success, result.stdout + result.stderr
             return result.stdout + result.stderr
 
-        run('main.sh', 'setup', '--component', 'system:amd-gaming', '--module', 'termlay', '--no-configure')
+        run('main.sh', 'setup', '--component', 'system:amd-gaming', '--module', 'termlay',
+            '--module', 'connect-vps', '--no-configure')
         registry = home / '.local/state/shell-scripts/registry.json'
         installed = home / '.local/bin'
+        state = json.loads(registry.read_text())
+        old_helpers = {
+            'termlay': {'Layout.py': 'scripts/layout/Layout.py',
+                        'TermlayError.py': 'scripts/TermlayError.py'},
+            'connect-vps': {'Connection.py': 'scripts/Connection.py',
+                            'ConnectVpsError.py': 'scripts/ConnectVpsError.py'},
+        }
+        for module, helpers in old_helpers.items():
+            for name, relative in helpers.items():
+                source = REPOSITORY / 'src/system-utilities' / module / relative
+                target = installed / name
+                target.write_bytes(source.read_bytes())
+                target.chmod(0o644)
+                state['modules'][module]['commands'][name] = {
+                    'path': str(target), 'source': str(source),
+                    'sha256': hashlib.sha256(target.read_bytes()).hexdigest(),
+                }
+        registry.write_text(json.dumps(state))
         # Explicit user selections must not request system-registry privileges.
-        output = run('main.sh', 'update', '--module', 'system', '--module', 'termlay')
-        assert 'Updated system:' in output and 'Updated termlay:' in output
+        output = run('main.sh', 'update', '--module', 'system', '--module', 'termlay',
+                     '--module', 'connect-vps')
+        assert all(f'Updated {name}:' in output for name in ('system', 'termlay', 'connect-vps'))
         state = json.loads(registry.read_text())
         assert state['modules']['system']['components'] == ['amd-gaming']
         assert not (installed / 'install-h848-audio-fix').exists()
         assert 'source_sha256' in state['modules']['termlay']['commands']['termlay']
+        for module, helpers in old_helpers.items():
+            assert set(state['modules'][module]['commands']) == {module}
+            assert (installed / module).read_bytes().startswith(b'\x7fELF')
+            for name in helpers:
+                assert not (installed / name).exists()
+        assert subprocess.run([str(installed / 'termlay'), '--version'], env=environment,
+                              capture_output=True, text=True, check=True).stdout.strip() == 'termlay 0.5.0'
+        assert subprocess.run([str(installed / 'connect-vps'), '--help'], env=environment,
+                              capture_output=True, text=True, check=True).returncode == 0
         previous = registry.read_bytes()
         command = installed / 'termlay'
         command.write_bytes(command.read_bytes() + b'\n# local edit\n')

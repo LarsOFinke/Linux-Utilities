@@ -17,6 +17,6 @@ Choose password authentication for a VPS that does not accept your key. The data
 
 The database is `$XDG_DATA_HOME/connect-vps/connections.sqlite3`, or `~/.local/share/connect-vps/connections.sqlite3` if `XDG_DATA_HOME` is unset. `XDG_DATA_HOME` must be absolute. The module makes the data directory mode 0700 and the database mode 0600 and refuses a symbolic link at either path. Uninstall preserves saved connections.
 
-Install with `./main.sh setup --module connect-vps` from the repository root, or this module's `setup.sh` within the checkout. The default command install is for the current user; `--system` installs the command for all users, while each user keeps a separate database. Python 3.9 or newer and an OpenSSH `ssh` client are required. Installed commands work from any directory.
+Install with `./main.sh setup --module connect-vps` from the repository root, or this module's `setup.sh` within the checkout. The build needs a C compiler (`cc`) and installs one Linux executable, `connect-vps`; `--system` installs it for all users, while each user keeps a separate database. The executable embeds its Python sources and uses Python 3.9 or newer and an OpenSSH `ssh` client at runtime. Installed commands work from any directory. Updating an older install removes its registry-owned helper `.py` files after verifying their hashes; locally changed helpers stop the update.
 
 Run `python3 src/system-utilities/connect-vps/tests/ConnectVpsTest.py` for focused tests. Tests use temporary homes and mock SSH; they do not contact a server.

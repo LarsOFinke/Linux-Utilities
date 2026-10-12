@@ -2,7 +2,7 @@
 
 Independent Linux utilities organized by concern under `src/`. Run `./main.sh` to choose setup, update, or uninstall. Setup asks for category, module, then sub-module when needed, and installs selected modules as one batch. Enter `b` at a selection menu to go back; from the category menu, it returns to the main action menu. Each module also has its own setup and uninstall scripts. The stable module IDs are used in commands and registries; display names and categories help people find the right tool.
 
-Setup, update, and uninstall require Python 3.9 or newer. Runtime requirements are listed in each module README.
+Setup, update, and uninstall require Python 3.9 or newer. Building `termlay` and `connect-vps` also requires a C compiler (`cc`); each installs as one Linux executable with its Python sources embedded. Python remains a runtime requirement. Other runtime requirements are listed in each module README.
 
 ## Install, update, and remove
 

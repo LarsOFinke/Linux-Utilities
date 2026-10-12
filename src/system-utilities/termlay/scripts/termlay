@@ -8,8 +8,7 @@ import sys
 from pathlib import Path
 
 SCRIPT_DIRECTORY = Path(__file__).resolve().parent
-sys.path[:0] = [str(SCRIPT_DIRECTORY / concern) for concern in ("layout", "ptyxis")
-                if (SCRIPT_DIRECTORY / concern).is_dir()]
+sys.path[:0] = [str(SCRIPT_DIRECTORY / concern) for concern in ("layout", "ptyxis")]
 
 from Layout import Layout
 from LayoutStore import LayoutStore

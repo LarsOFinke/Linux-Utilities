@@ -27,10 +27,10 @@ When several tabs run the same command, capture uses the workspace label in titl
 
 Layouts are JSON files at `$XDG_CONFIG_HOME/termlay/layouts/<name>.json`, or `~/.config/termlay/layouts/<name>.json` when `XDG_CONFIG_HOME` is unset. `XDG_CONFIG_HOME` must be absolute. The layout directory is private (mode 0700), cannot be a symbolic link, and new files use mode 0600. The versioned file records a name and an ordered `tabs` array with each tab's `cwd`.
 
-Install with `./main.sh setup --module termlay` from the repository root, or run this module's `setup.sh` directly. The default install puts `termlay` and its Python helpers in `~/.local/bin`; `--system` is available for a shared command. Python 3.9 or newer is required at runtime. `save` and `update` also need Python GObject and AT-SPI bindings and a working desktop accessibility service. Installed commands work from any working directory.
+Install with `./main.sh setup --module termlay` from the repository root, or run this module's `setup.sh` directly. The build needs a C compiler (`cc`) and installs one Linux executable, `termlay`, in `~/.local/bin`; `--system` is available for a shared command. The executable embeds its Python sources and uses Python 3.9 or newer at runtime. `save` and `update` also need Python GObject and AT-SPI bindings and a working desktop accessibility service. Installed commands work from any working directory. Updating an older install removes its registry-owned helper `.py` files after verifying their hashes; locally changed helpers stop the update.
 
 Termlay captures only the focused Ptyxis window. It stores and reopens working directories, not commands, shell state, or terminal window placement. Remove the command with `./main.sh uninstall --module termlay` or this module's `uninstall.sh`. Saved layouts are user data and remain on disk.
 
-The scripts keep each class in its own PascalCase file. `scripts/layout/` owns layout data, storage, and path validation; `scripts/ptyxis/` owns tab discovery, process lookup, and capture prompts. The manifest installs their helpers beside `termlay`.
+The scripts keep each class in its own PascalCase file. `scripts/layout/` owns layout data, storage, and path validation; `scripts/ptyxis/` owns tab discovery, process lookup, and capture prompts. The build embeds these sources in the executable.
 
 Run `python3 src/system-utilities/termlay/tests/TermlayTest.py` for focused CLI and storage tests. Tests use temporary storage and fake Ptyxis commands; they do not open terminal windows.
