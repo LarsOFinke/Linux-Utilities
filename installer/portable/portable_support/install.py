@@ -7,6 +7,7 @@ import tempfile
 from pathlib import Path
 
 from .bundle import build as build_bundle
+from .dependencies import ensure_build_dependencies
 from .files import atomic_copy, atomic_json, digest, local_path, restore_snapshot
 from .install_plan import prepare
 from . import migration
@@ -15,6 +16,7 @@ from .state import fail
 
 def install(bin_dir: Path, state_path: Path, root: Path, system: bool,
             selected: set[str] | None = None, *, module: Path, manifest: dict, module_id: str) -> None:
+    ensure_build_dependencies()
     plan = prepare(module, manifest, bin_dir, state_path, root, system, selected, module_id)
     migration_files = migration.files(module_id, plan.previous, root, system)
     plan.snapshots.update({path: (path.read_bytes(), path.stat().st_mode & 0o777)

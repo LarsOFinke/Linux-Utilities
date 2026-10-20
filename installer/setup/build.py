@@ -7,9 +7,11 @@ from pathlib import Path
 
 from catalog import MODULES, REPOSITORY, component_commands
 from portable.portable_support.bundle import build as build_bundle
+from portable.portable_support.dependencies import ensure_build_dependencies
 
 def build_commands(selected: list[str], directory: Path,
                    components: dict[str, set[str] | None] | None = None) -> dict[tuple[str, str], Path]:
+    ensure_build_dependencies()
     built = {}
     for module in selected:
         requested = (components or {}).get(module)

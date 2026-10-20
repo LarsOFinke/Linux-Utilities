@@ -11,6 +11,7 @@ import tarfile
 from pathlib import Path
 
 from catalog import MODULES, REPOSITORY
+from portable.portable_support.dependencies import ensure_remote_build_dependencies
 from remote.scripts import source
 from remote.state import local_registry, record, valid_target
 
@@ -75,9 +76,12 @@ def deploy(target: str, selection: dict[str, set[str] | None], system: bool,
     scope = "system" if system else "user"
     # Check the local registry before changing the remote host.
     local_registry()
-    for module, components in selection.items():
+    for module in selection:
         if scope not in MODULES[module]["scopes"]:
             raise RuntimeError(f"{module} does not support {scope} installation")
+    if action in {"install", "update"}:
+        ensure_remote_build_dependencies(target)
+    for module, components in selection.items():
         options = {"action": action, "system": system, "force": force,
                    "components": sorted(components or [])}
         remote_command = "python3 -c " + shlex.quote(source("bootstrap")) + " " + shlex.quote(json.dumps(options))

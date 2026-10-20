@@ -13,3 +13,5 @@ Run the whole isolated suite with `python3 installer/verify.py` from the reposit
 Run an individual Python test with `python3 installer/tests/<directory>/<file>.py`; run the shell setup test with `bash installer/tests/lifecycle/setup_test.sh`. Tests use temporary homes and install roots.
 
 `lifecycle/registry_routing_test.py` also exercises each module's direct entry link to the shared `installer/module_entry.sh` router.
+
+`lifecycle/dependencies_test.py` checks missing-tool guidance, consent, package failures, and compiler rechecks without host package changes. `lifecycle/dependency_wrapper_test.py` drives the actual wrapper through PTYs for local and mocked SSH deployment, using isolated package-manager and compiler fixtures. It verifies decline, acceptance through to compilation, noninteractive refusal, and no registry publication after a failed build.
