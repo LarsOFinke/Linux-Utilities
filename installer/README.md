@@ -70,3 +70,7 @@ command sources, not every build dependency; an update always rebuilds selected
 commands. Older registry entries acquire source hashes on their next refresh.
 Run `python3 installer/tests/lifecycle/update_test.py` for update ownership and
 scope checks, and `remote_deploy_test.py` for portable update state checks.
+
+`menu.py` owns the persistent interactive action menu. No-argument `main.sh`
+returns here after each action, including failures and selector back-navigation.
+Explicit action arguments retain their exit status and one-shot behavior.

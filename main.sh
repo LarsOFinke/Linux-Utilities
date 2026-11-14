@@ -2,6 +2,10 @@
 set -Eeuo pipefail
 
 repository=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+if (( $# == 0 )); then
+    export PYTHONDONTWRITEBYTECODE=1
+    exec python3 "$repository/installer/menu.py"
+fi
 choice=''
 if (( $# )); then
     choice=$1

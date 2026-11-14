@@ -231,9 +231,9 @@ class TermlayTest(unittest.TestCase):
         for pid, parent, comm, argv, cwd in (
             (100, 1, "ptyxis-agent", b"ptyxis-agent", self.root),
             (101, 100, "bash", b"bash", projects[0]),
-            (102, 101, "node", b"node\0/home/lars/.local/bin/codex\0", projects[0]),
+            (102, 101, "node", b"node\0/home/example/.local/bin/codex\0", projects[0]),
             (103, 100, "bash", b"bash", projects[1]),
-            (104, 103, "node", b"node\0/home/lars/.local/bin/codex\0", projects[1]),
+            (104, 103, "node", b"node\0/home/example/.local/bin/codex\0", projects[1]),
         ):
             process = proc / str(pid)
             process.mkdir()
@@ -242,9 +242,9 @@ class TermlayTest(unittest.TestCase):
             (process / "cmdline").write_bytes(argv)
             (process / "cwd").symlink_to(cwd, target_is_directory=True)
         for project in projects:
-            title = f"Analyze this project | {project.name} — node /home/lars/.local/bin/codex"
+            title = f"Analyze this project | {project.name} — node /home/example/.local/bin/codex"
             self.assertEqual(foreground_directory(title, proc), str(project))
-        self.assertIsNone(foreground_directory("Other — node /home/lars/.local/bin/codex", proc))
+        self.assertIsNone(foreground_directory("Other — node /home/example/.local/bin/codex", proc))
 
     def test_installed_command_from_another_directory(self) -> None:
         result = subprocess.run([str(REPOSITORY / "scripts/setup.sh"), "--module", "termlay"],

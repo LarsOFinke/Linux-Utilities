@@ -53,3 +53,7 @@ Canary's `scripts/ssh/` owns SSH journal classification, the watcher, and servic
 `selection/inventory.py` and `selection/installed.py` share update/uninstall scope discovery and selectors. Explicit user updates avoid system-registry reads. SSH updates use portable `update` under the scope lock and refuse missing installations. `tests/update_test.py` covers update ownership and component preservation.
 
 Build prerequisite checks live in `installer/portable/portable_support/dependencies.py`, shared by local builds and portable installs. Missing `cc` offers interactive APT installation of `build-essential` and is rechecked afterward; noninteractive runs fail with instructions. SSH deployment checks the target and prompts locally before transfer. Listing and uninstall do not install build dependencies. Package changes are outside module rollback. Tests in `installer/tests/lifecycle/dependencies_test.py` and `dependency_wrapper_test.py` use isolated package tools and PTYs.
+
+`installer/menu.py` owns the loop-until-exit action menu used by no-argument
+`main.sh`; browsing is read-only, actions return on success/failure, and explicit
+CLI actions remain one-shot.
