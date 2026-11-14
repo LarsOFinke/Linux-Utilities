@@ -57,3 +57,7 @@ Build prerequisite checks live in `installer/portable/portable_support/dependenc
 `installer/menu.py` owns the loop-until-exit action menu used by no-argument
 `main.sh`; browsing is read-only, actions return on success/failure, and explicit
 CLI actions remain one-shot.
+
+CI requires ripgrep (`rg`) alongside ShellCheck and the compiler. SSH bootstrap
+spools piped archives into a private seekable temporary file before validating
+all members and extracting. Canary mail timestamps use `timezone.utc` for Python 3.9.

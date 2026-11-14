@@ -125,7 +125,7 @@ portability. It continues after failed checks and returns a nonzero exit status
 if any check fails. Tests use temporary homes/install roots and mocked host
 operations; they do not run live backups, capture, cleanup, or system services.
 
-Use a Debian/Ubuntu test environment with Python 3.9+, Bash, ShellCheck, a C
+Use a Debian/Ubuntu test environment with Python 3.9+, Bash, ShellCheck, ripgrep (`rg`), a C
 compiler (`build-essential`), Git, GNU coreutils, tar, bzip2, util-linux (`flock`),
 and APT (`apt-config`). No Python packages are required for this suite. Individual
 module READMEs retain focused test commands. The GitHub Actions workflow runs the

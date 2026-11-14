@@ -2,7 +2,7 @@
 import os
 import smtplib
 import sys
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from email.message import EmailMessage
 
 
@@ -50,7 +50,7 @@ def main(argv=None) -> int:
         f"Event mask: {event_mask}\n"
         f"Process PID: {event_pid}\n"
         f"Hostname: {os.uname().nodename}\n"
-        f"Timestamp: {datetime.now(UTC).strftime('%Y-%m-%dT%H:%M:%SZ')}\n"
+        f"Timestamp: {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}\n"
     )
     msg.set_content(body)
 

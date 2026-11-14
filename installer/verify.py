@@ -14,7 +14,7 @@ REPOSITORY = Path(__file__).resolve().parents[1]
 
 
 def main() -> int:
-    required = ("bash", "shellcheck", "cc", "git", "tar", "bzip2", "flock", "timeout", "apt-config")
+    required = ("bash", "shellcheck", "rg", "cc", "git", "tar", "bzip2", "flock", "timeout", "apt-config")
     missing = [command for command in required if shutil.which(command) is None]
     if missing:
         print(f"Missing verification tools: {', '.join(missing)}", file=sys.stderr)

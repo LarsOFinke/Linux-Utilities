@@ -26,6 +26,6 @@ jobs:
       - name: Install verification tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential shellcheck bzip2
+          sudo apt-get install -y build-essential shellcheck bzip2 ripgrep
       - name: Verify
         run: python3 installer/verify.py
